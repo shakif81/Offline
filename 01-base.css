@@ -1,0 +1,30 @@
+:root {
+    --primary: #1a365d;
+    --primary-dark: #0f2547;
+    --secondary: #2d74da;
+    --accent: #00b4d8;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
+body { background: #f8fafc; color: var(--gray-800); line-height: 1.6; min-height: 100vh; }
+button { font-family: inherit; }
+
+.app-container {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 80px 1fr;
+    grid-template-areas: "sidebar header" "sidebar main";
+    min-height: 100vh;
+}
+.main-content { grid-area: main; padding: 1.5rem; overflow-y: auto; }
