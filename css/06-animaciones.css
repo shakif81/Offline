@@ -1,0 +1,36 @@
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+@keyframes pulse-dot {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+        box-shadow: 0 0 0 0 currentColor;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.9;
+        box-shadow: 0 0 0 6px transparent;
+    }
+}
+.pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+
+@keyframes parpadeoCrono {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+.crono-parpadea { animation: parpadeoCrono 1s ease-in-out infinite; }
+
+@keyframes flashCambioHerr {
+    0% {
+        background: white;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+    30% {
+        background: #ecfdf5;
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.2);
+    }
+    100% {
+        background: white;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}

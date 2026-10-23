@@ -1,0 +1,43 @@
+#loginModal {
+    display: flex; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85); z-index: 99999;
+    align-items: center; justify-content: center; padding: 20px;
+}
+.login-box {
+    background: white; border-radius: 20px;
+    padding: 24px 20px; width: 100%; max-width: 340px;
+    text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+.login-box .logo-emoji { font-size: 2.5rem; }
+.login-box h2 { margin: 6px 0; font-size: 1.2rem; color: var(--primary); }
+.login-box .subtitle { color: var(--gray-600); font-size: 0.8rem; margin-bottom: 14px; }
+.login-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; max-height: 30vh; overflow-y: auto; }
+.login-op-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px; border: 2px solid var(--gray-200);
+    border-radius: 10px; background: var(--gray-50);
+    cursor: pointer; width: 100%; text-align: left; margin-bottom: 3px;
+}
+.login-op-btn:hover { border-color: var(--secondary); background: var(--gray-100); }
+.login-op-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #607d8b;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; color: white;
+}
+.login-op-name { font-weight: 700; font-size: 0.85rem; }
+.login-op-role { font-size: 0.65rem; color: #888; }
+.pin-input {
+    flex: 1; padding: 10px; border-radius: 8px;
+    border: 2px solid var(--gray-300);
+    font-size: 1.1rem; text-align: center; letter-spacing: 5px;
+}
+.btn-login-ok {
+    padding: 10px 14px; border: none; border-radius: 8px;
+    background: var(--success); color: white;
+    font-size: 1rem; cursor: pointer;
+}
+.btn-link {
+    background: none; border: none; color: var(--gray-600);
+    cursor: pointer; font-size: 0.75rem; text-decoration: underline;
+}
