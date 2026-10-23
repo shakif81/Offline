@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a365d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TRAXX">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  
+  
+  <title>Linea TRAXX - Sistema de Operaciones</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="css/01-base.css?v=2">
+<link rel="stylesheet" href="css/02-estructura.css?v=2">
+<link rel="stylesheet" href="css/03-login.css?v=2">
+<link rel="stylesheet" href="css/04-componentes.css?v=2">
+<link rel="stylesheet" href="css/05-chat-crono-overlay.css?v=2">
+<link rel="stylesheet" href="css/06-animaciones.css?v=2">
+<link rel="stylesheet" href="css/07-estaciones-responsive.css?v=2">
+</head>
+
+<body>
+
+<div id="loginModal">
+    <div class="login-box">
+        <div class="logo-emoji">🚄</div>
+        <h2>Linea TRAXX</h2>
+        <p class="subtitle">Montaje de Convertidores</p>
+
+        <div id="listaOperariosLogin" class="login-list">
+            <div style="color:var(--gray-600);font-size:0.8rem;">⏳ Cargando...</div>
+        </div>
+
+        <div id="pinSection" style="display:none;">
+            <div id="operarioSeleccionadoNombre" style="font-weight:700;font-size:0.9rem;margin-bottom:6px;"></div>
+            <div style="display:flex;gap:6px;margin-bottom:10px;">
+                <input id="pinInput" type="password" inputmode="numeric" maxlength="6" placeholder="● ● ● ●" class="pin-input" onkeydown="if(event.key==='Enter')confirmarLogin()">
+                <button class="btn-login-ok" onclick="confirmarLogin()">&#10003;</button>
+            </div>
+            <button class="btn-link" onclick="volverSeleccionOperario()">&#8592; Cambiar</button>
+            <div id="pinError" style="color:var(--danger);font-size:0.75rem;margin-top:5px;display:none;">&#10060; PIN incorrecto</div>
+        </div>
+
+        <button class="btn-link" onclick="accederSinOperario()" style="margin-top:6px;">Entrar como visitante</button>
+    </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app-container" id="appContainer" style="display:none;">
+
+    <header class="header">
+        <button class="menu-toggle" id="menuToggle">☰</button>
+        <div class="header-title"><h1>Linea TRAXX</h1></div>
+        <div class="header-actions">
+            <div class="user-profile">
+                <div class="user-avatar" id="userAvatar">OP</div>
+                <div>
+                    <div class="user-name" id="userName">Operario</div>
+                    <div class="user-role" id="userRole">Taller TRAXX</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="sidebar" id="sidebar" style="display:none;">
+        <div class="logo">
+            <h2><div class="logo-icon">🚄</div>TRAXX</h2>
+        </div>
+        <div class="nav-menu">
+            <button class="nav-item" data-page="dashboard"><i class="fas fa-tachometer-alt nav-icon"></i>Dashboard</button>
+            <button class="nav-item active" data-page="operaciones"><i class="fas fa-clipboard-list nav-icon"></i>Operaciones</button>
+            <button class="nav-item" data-page="estaciones"><i class="fas fa-industry nav-icon"></i>Estaciones</button>
+            <button class="nav-item" data-page="kanban"><i class="fas fa-box-open nav-icon"></i>Kanban</button>
+          <button class="nav-item" data-page="materiales">
+    <i class="fas fa-flask nav-icon"></i>Materiales
+    <span class="nav-badge" id="badgeMateriales">0</span>
+</button>
+<button class="nav-item" data-page="verificar-materiales">
+    <i class="fas fa-qrcode nav-icon"></i>Verificar Materiales
+</button>
+            <button class="nav-item" data-page="herramientas"><i class="fas fa-tools nav-icon"></i>Herramientas</button>
+
+            <button class="nav-item" data-page="chat">
+                <i class="fas fa-comments nav-icon"></i>Chat
+                <span class="nav-badge" id="badgeChat">0</span>
+            </button>
+            <button class="nav-item" data-page="notificaciones">
+                <i class="fas fa-bell nav-icon"></i>Notificaciones
+                <span class="nav-badge" id="badgeNotif">0</span>
+            </button>
+            <button class="nav-item nav-separator" onclick="cerrarSesion()">
+                <i class="fas fa-sign-out-alt nav-icon"></i>Cerrar Sesión
+            </button>
+        </div>
+    </nav>
+
+    <nav class="sidebar admin" id="sidebarAdmin" style="display:none;">
+        <div class="logo">
+            <h2><div class="logo-icon">⚙️</div>Admin Panel</h2>
+        </div>
+        <div class="nav-menu">
+            <button class="nav-item active" data-admin-tab="operarios"><i class="fas fa-users nav-icon"></i>Operarios</button>
+            <button class="nav-item" data-admin-tab="estaciones"><i class="fas fa-industry nav-icon"></i>Estaciones</button>
+            <button class="nav-item" data-admin-tab="operaciones"><i class="fas fa-clipboard-list nav-icon"></i>Operaciones</button>
+            <button class="nav-item" data-admin-tab="kanban"><i class="fas fa-box-open nav-icon"></i>Kanban</button>
+<button class="nav-item" data-admin-tab="movimientosKanban">
+    <i class="fas fa-exchange-alt nav-icon"></i>Mov. Kanban
+    <span class="nav-badge" id="badgeKanbanSidebar">0</span>
+</button>
+            <button class="nav-item" data-admin-tab="tornilleria"><i class="fas fa-cog nav-icon"></i>Tornillería</button>
+            <button class="nav-item" data-admin-tab="materiales"><i class="fas fa-flask nav-icon"></i>Materiales</button>
+            <button class="nav-item" data-admin-tab="entregarMateriales"><i class="fas fa-box nav-icon"></i>Entregar Materiales</button>
+            <button class="nav-item" data-admin-tab="registros"><i class="fas fa-database nav-icon"></i>Registros materiales</button>
+            <button class="nav-item" data-admin-tab="herramientas"><i class="fas fa-tools nav-icon"></i>Herramientas</button>
+            <button class="nav-item" data-admin-tab="registroHerramientas"><i class="fas fa-history nav-icon"></i>Registro Herramientas</button>
+
+            <button class="nav-item" data-admin-tab="montajes"><i class="fas fa-puzzle-piece nav-icon"></i>Montajes</button>
+            <button class="nav-item" data-admin-tab="registroVerificaciones"><i class="fas fa-clipboard-check nav-icon"></i>Registro Verif. Montajes</button>
+
+<button class="nav-item" data-admin-tab="tqc">
+    <i class="fas fa-search nav-icon"></i>Control Calidad
+    <span class="nav-badge" id="badgeTQCSidebar">0</span>
+</button>
+
+            <button class="nav-item" data-admin-tab="inspeccion"><i class="fas fa-search nav-icon"></i>Inspección</button>
+
+            <button class="nav-item" data-admin-tab="configEscaner"><i class="fas fa-sliders-h nav-icon"></i>Config. Escáner</button>
+
+            <button class="nav-item nav-separator" onclick="cerrarSesion()">
+                <i class="fas fa-sign-out-alt nav-icon"></i>Cerrar Sesión
+            </button>
+        </div>
+    </nav>
+
+    <main class="main-content" id="mainContent">
+
+        <div class="page-section active" id="operaciones">
+            <div class="content-header">
+                <div>
+                    <h1 class="page-title">Operaciones</h1>
+                    <p class="page-subtitle">Selecciona una operación para ver sus montajes</p>
+                </div>
+            </div>
+            <div class="operaciones-grid" id="operacionesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem;">
+                <div class="empty-state">⏳ Cargando...</div>
+            </div>
+        </div>
+
+        <div class="page-section" id="montajes-operacion">
+            <div class="content-header">
+                <button class="btn btn-outline" onclick="volverAOperaciones()">← Volver</button>
+                <div>
+                    <h1 class="page-title" id="montajesTitulo">Operación</h1>
+                    <p class="page-subtitle" id="montajesSubtitulo"></p>
+                </div>
+            </div>
+            <div id="operacionInfoBar" style="display:none;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;padding:0.8rem 1.2rem;border-radius:12px;margin-bottom:1.5rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;font-size:0.85rem;">
+                <span>🔢 <strong id="infoOpNumero">-</strong></span>
+                <span>📦 <strong id="infoOpModelo">-</strong></span>
+                <span>📋 <strong id="infoOpMontajes">0</strong> montajes</span>
+                <span>⏱️ <strong id="infoOpTiempo">0.00h</strong></span>
+            </div>
+            <div id="montajesList">
+                <div class="empty-state">Selecciona una operación</div>
+            </div>
+        </div>
+
+        <div class="page-section" id="estaciones">
+            <div class="content-header">
+                <div>
+                    <h1 class="page-title">Estaciones</h1>
+                    <p class="page-subtitle">Todas las estaciones de trabajo</p>
+                </div>
+            </div>
+            <div style="margin-bottom:1rem;">
+                <select id="filtroModeloEstaciones" style="width:100%;max-width:280px;padding:8px;border-radius:8px;border:1px solid var(--gray-300);">
+                    <option value="todos">Todos los modelos</option>
+                    <option value="MS3">🔷 MS3</option>
+                    <option value="DC3">🔶 DC3</option>
+                </select>
+            </div>
+            <div id="estacionesGrid"></div>
+        </div>
+
+        <div class="page-section" id="dashboard">
+            <div class="content-header">
+                <div>
+                    <h1 class="page-title">Dashboard</h1>
+                    <p class="page-subtitle">Resumen de producción</p>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-bottom:1.2rem;flex-wrap:wrap;align-items:center;background:white;padding:12px 16px;border-radius:12px;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:1rem;">📅</span>
+                    <select id="dashFiltroFecha" onchange="actualizarDashboard()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                        <option value="hoy">Hoy</option>
+                        <option value="semana">Últimos 7 días</option>
+                        <option value="mes">Últimos 30 días</option>
+                        <option value="todo" selected>Todo</option>
+                    </select>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:1rem;">👤</span>
+                    <select id="dashFiltroOperario" onchange="actualizarDashboard()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                        <option value="todos">Todos los operarios</option>
+                    </select>
+                </div>
+                <div style="margin-left:auto;">
+                    <span id="dashFiltrosInfo" style="font-size:0.75rem;color:#64748b;font-weight:600;">Mostrando: todo</span>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card success"><i class="fas fa-check-circle"></i><div class="stat-value" id="dashMontajesHoy">0</div><div class="stat-label">Montajes completados</div></div>
+                <div class="stat-card info"><i class="fas fa-clock"></i><div class="stat-value" id="dashTiempoTotal">0.00h</div><div class="stat-label">Tiempo total</div></div>
+                <div class="stat-card warning"><i class="fas fa-hourglass-half"></i><div class="stat-value" id="dashPendientes">0</div><div class="stat-label">Pendientes</div></div>
+                <div class="stat-card info"><i class="fas fa-user-clock"></i><div class="stat-value" id="dashTiempoRestante">0.00h</div><div class="stat-label">Tiempo restante</div></div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr;gap:1rem;margin-top:1.5rem;">
+                <div class="panel" style="border-left:4px solid #10b981;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+                        <h3 style="margin:0;display:flex;align-items:center;gap:8px;color:#047857;">
+                            <span style="font-size:1.1rem;">📜</span>
+                            <span>Últimos montajes completados</span>
+                        </h3>
+                        <span id="dashHistorialCount" style="background:#ecfdf5;color:#047857;padding:3px 10px;border-radius:99px;font-size:0.7rem;font-weight:700;">0</span>
+                    </div>
+                    <div id="dashHistorialList" style="display:flex;flex-direction:column;gap:6px;">
+                        <div style="text-align:center;padding:1.5rem;color:#94a3b8;font-size:0.85rem;">Sin montajes completados todavía</div>
+                    </div>
+                </div>
+
+                <div class="panel" style="border-left:4px solid #6366f1;">
+                    <h3 style="margin:0 0 12px 0;display:flex;align-items:center;gap:8px;color:#4338ca;">
+                        <span style="font-size:1.1rem;">📊</span>
+                        <span>Estadísticas del día</span>
+                    </h3>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+                        <div style="background:linear-gradient(135deg,#eef2ff,white);border:1px solid #c7d2fe;border-radius:12px;padding:14px;text-align:center;">
+                            <div style="font-size:1.3rem;margin-bottom:4px;">✅</div>
+                            <div id="dashStatHoy" style="font-size:1.6rem;font-weight:800;color:#4338ca;line-height:1;">0</div>
+                            <div style="font-size:0.7rem;color:#4338ca;font-weight:600;margin-top:4px;opacity:0.8;">Montajes hoy</div>
+                        </div>
+                        <div style="background:linear-gradient(135deg,#ecfdf5,white);border:1px solid #a7f3d0;border-radius:12px;padding:14px;text-align:center;">
+                            <div style="font-size:1.3rem;margin-bottom:4px;">⏱️</div>
+                            <div id="dashStatTiempoMedio" style="font-size:1.6rem;font-weight:800;color:#047857;line-height:1;">0.00h</div>
+                            <div style="font-size:0.7rem;color:#047857;font-weight:600;margin-top:4px;opacity:0.8;">Tiempo medio</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<div class="page-section" id="herramientas">
+    <div class="content-header">
+        <div>
+            <h1 class="page-title">🔧 Herramientas</h1>
+            <p class="page-subtitle">Reserva y gestión de herramientas del taller</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="cargarHerramientasOperario()" id="btnRefrescarHerramientas">
+            🔄 Refrescar
+        </button>
+    </div>
+    <div id="herramientasContainer">
+        <div class="empty-state">⏳ Cargando...</div>
+    </div>
+</div>
+
+        <div class="page-section" id="kanban">
+            <div class="content-header">
+                <div>
+                    <h1 class="page-title">Kanban</h1>
+                    <p class="page-subtitle">Control de piezas y stock</p>
+                </div>
+            </div>
+            <div id="kanbanContainer"></div>
+        </div>
+
+<div class="page-section" id="materiales">
+    <div class="content-header">
+        <div>
+            <h1 class="page-title">📦 Materiales</h1>
+            <p class="page-subtitle" id="materialesOpInfo">Verifica los materiales recibidos antes de empezar</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="cargarMaterialesOperario()" id="btnRefrescarMateriales">
+            🔄 Refrescar
+        </button>
+    </div>
+    <div id="materialesContainer">
+        <div class="empty-state">⏳ Cargando...</div>
+    </div>
+</div>
+
+<div class="page-section" id="verificar-materiales">
+    <div class="content-header">
+        <div>
+            <h1 class="page-title">📷 Verificar Materiales</h1>
+            <p class="page-subtitle" id="verifMatInfo">Escanea la etiqueta para verificar el material recibido</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="cargarVerificarMateriales()" id="btnRefrescarVerifMat">
+            🔄 Refrescar
+        </button>
+    </div>
+    <div id="verifMatContainer">
+        <div class="empty-state">⏳ Cargando...</div>
+    </div>
+</div>
+
+<div class="page-section" id="chat">
+    <div class="content-header">
+        <div>
+            <h1 class="page-title">💬 Chat</h1>
+            <p class="page-subtitle">Conversaciones privadas</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalNuevoChat()" style="padding:8px 14px;">➕ Nuevo chat</button>
+    </div>
+    <div id="chatContainer">
+        <div id="chatListaConversaciones" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="empty-state">⏳ Cargando chats...</div>
+        </div>
+
+        <div id="chatConversacionAbierta" style="display:none;"></div>
+    </div>
+</div>
+
+<div class="page-section" id="notificaciones">
+    <div class="content-header">
+        <div>
+            <h1 class="page-title">🔔 Notificaciones</h1>
+            <p class="page-subtitle">Resultados de control de calidad</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="cargarNotificaciones()" style="padding:8px 14px;">🔄 Refrescar</button>
+    </div>
+    <div id="notificacionesContainer">
+        <div class="empty-state">⏳ Cargando...</div>
+    </div>
+</div>
+
+        <div class="page-section" id="admin">
+            <div class="content-header">
+                <div>
+                    <h1 class="page-title" id="adminPageTitle">Administración</h1>
+                </div>
+            </div>
+
+            <div class="admin-panel" id="adminPanelOperarios" style="display:none;">
+                <div class="panel">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+                        <h3 style="margin:0;">👥 Operarios</h3>
+                        <button class="btn btn-primary btn-sm" onclick="mostrarFormNuevoOperario()" style="padding:8px 14px;">➕ Nuevo Operario</button>
+                    </div>
+
+                    <div style="margin-bottom:1rem;">
+                        <input type="text" id="adminOperariosBusqueda" placeholder="🔍 Buscar operario..." oninput="cargarAdminOperarios()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--gray-300);font-size:0.85rem;font-family:inherit;">
+                    </div>
+
+                    <div id="adminOperariosList" class="items-list" style="max-height:400px;">
+                        <div class="empty-state">⏳ Cargando...</div>
+                    </div>
+
+                    <div id="adminOperariosForm" style="display:none;margin-top:12px;background:var(--gray-50);padding:16px;border-radius:12px;border:2px solid var(--secondary);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                            <h4 style="margin:0;color:var(--primary);">✏️ <span id="adminOperarioFormTitulo">Editar Operario</span></h4>
+                            <button onclick="cerrarFormOperario()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-600);">✕</button>
+                        </div>
+
+                        <input type="hidden" id="adminOperarioId">
+
+                        <div class="form-group">
+                            <label>👤 Nombre</label>
+                            <input type="text" id="adminOperarioNombre" placeholder="Ej: Sammy" maxlength="30">
+                        </div>
+
+                        <div class="form-group">
+                            <label>💼 Puesto</label>
+                            <select id="adminOperarioPuesto">
+                                <option value="operario">👤 Operario</option>
+                                <option value="supervisor">👨‍💼 Supervisor</option>
+                                <option value="admin">⚙️ Admin</option>
+                            </select>
+                            <small style="color:var(--gray-600);font-size:0.7rem;">Los supervisores y admins ven el panel de administración.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>🔒 PIN (opcional)</label>
+                            <input type="password" id="adminOperarioPin" placeholder="Dejar vacío para no cambiar" maxlength="6" inputmode="numeric">
+                            <small style="color:var(--gray-600);font-size:0.7rem;">Se guarda hasheado (SHA-256). Si lo dejas vacío, se mantiene el PIN actual.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>🎨 Color de avatar</label>
+                            <div id="adminOperarioColorPicker" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+                        </div>
+
+                        <div style="display:flex;gap:8px;margin-top:6px;">
+                            <button class="btn btn-success" onclick="guardarOperarioAdmin()" style="flex:1;">💾 Guardar</button>
+                            <button class="btn btn-danger btn-sm" onclick="eliminarOperarioAdmin()" id="btnEliminarOperario" style="display:none;">🗑️ Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-panel" id="adminPanelEstaciones" style="display:none;">
+                <div class="panel">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+                        <h3 style="margin:0;">📍 Estaciones</h3>
+                        <button class="btn btn-primary btn-sm" onclick="mostrarFormNuevaEstacion()" style="padding:8px 14px;">➕ Nueva Estación</button>
+                    </div>
+
+                    <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+                        <div style="flex:1;min-width:150px;">
+                            <input type="text" id="adminEstacionesBusqueda" placeholder="🔍 Buscar estación..." oninput="cargarAdminEstaciones()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+                        </div>
+                        <select id="filtroModeloAdminEstaciones" onchange="cargarAdminEstaciones()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                            <option value="todos">🏭 Todos los modelos</option>
+                            <option value="MS3">🔷 MS3</option>
+                            <option value="DC3">🔶 DC3</option>
+                        </select>
+                        <div id="adminEstacionesContador" style="font-size:0.78rem;color:#64748b;font-weight:600;white-space:nowrap;">0 estaciones</div>
+                    </div>
+
+                    <div id="adminEstacionesList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+                        <div class="empty-state">⏳ Cargando...</div>
+                    </div>
+
+                    <div id="adminEstacionesForm" style="display:none;margin-top:16px;background:var(--gray-50);padding:20px;border-radius:14px;border:2px solid var(--secondary);box-shadow:0 8px 24px rgba(45,116,218,0.1);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                            <h4 style="margin:0;color:var(--primary);font-size:1rem;">✏️ <span id="adminEstacionFormTitulo">Editar Estación</span></h4>
+                            <button onclick="cerrarFormEstacion()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--gray-600);">✕</button>
+                        </div>
+
+                        <input type="hidden" id="adminEstacionId">
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>📍 Nombre de la estación *</label>
+                                <input type="text" id="adminEstacionNombre" placeholder="Ej: Estación 0" maxlength="40" oninput="actualizarPreviewEstacion()">
+                                <small style="color:var(--gray-600);font-size:0.7rem;">Debe ser único dentro del modelo.</small>
+                            </div>
+                            <div class="form-group">
+                                <label>📝 Descripción</label>
+                                <input type="text" id="adminEstacionDescripcion" placeholder="Ej: Zona de premontaje" maxlength="60" oninput="actualizarPreviewEstacion()">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>🏭 Modelo *</label>
+                            <div style="display:flex;gap:10px;margin-top:4px;">
+                                <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.9rem;transition:all 0.15s ease;" id="radioModeloMS3Label">
+                                    <input type="radio" name="adminEstacionModelo" value="MS3" id="radioModeloMS3" checked onchange="actualizarPreviewEstacion()" style="display:none;">
+                                    <span style="font-size:1.3rem;">🔷</span>
+                                    <span>MS3</span>
+                                </label>
+                                <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.9rem;transition:all 0.15s ease;" id="radioModeloDC3Label">
+                                    <input type="radio" name="adminEstacionModelo" value="DC3" id="radioModeloDC3" onchange="actualizarPreviewEstacion()" style="display:none;">
+                                    <span style="font-size:1.3rem;">🔶</span>
+                                    <span>DC3</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style="background:white;border-radius:10px;padding:14px;margin-top:14px;border:1px dashed #cbd5e1;">
+                            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;margin-bottom:8px;">👁️ Vista previa</div>
+                            <div id="adminEstacionPreview" style="display:flex;align-items:center;gap:12px;"></div>
+                        </div>
+                         <div class="form-group" style="margin-top:14px;">
+    <label>🎨 Color de la estación</label>
+    <div id="adminEstacionColorPicker" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"></div>
+</div>
+                        <div style="display:flex;gap:8px;margin-top:16px;">
+                            <button class="btn btn-success" onclick="guardarEstacionAdmin()" style="flex:1;">💾 Guardar Estación</button>
+                            <button class="btn btn-danger btn-sm" onclick="eliminarEstacionAdmin()" id="btnEliminarEstacion" style="display:none;">🗑️ Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-panel" id="adminPanelOperaciones" style="display:none;">
+                <div class="panel">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+                        <h3 style="margin:0;">🔢 Operaciones</h3>
+                        <button class="btn btn-primary btn-sm" onclick="mostrarFormNuevaOperacion()" style="padding:8px 14px;">➕ Nueva Operación</button>
+                    </div>
+
+                    <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+                        <div style="flex:1;min-width:150px;">
+                            <input type="text" id="adminOperacionesBusqueda" placeholder="🔍 Buscar por número o descripción..." oninput="cargarAdminOperaciones()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+                        </div>
+                        <select id="filtroModeloAdminOperaciones" onchange="cargarAdminOperaciones()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                            <option value="todos">🏭 Todos los modelos</option>
+                            <option value="MS3">🔷 MS3</option>
+                            <option value="DC3">🔶 DC3</option>
+                        </select>
+                        <div id="adminOperacionesContador" style="font-size:0.78rem;color:#64748b;font-weight:600;white-space:nowrap;">0 operaciones</div>
+                    </div>
+
+                    <div id="adminOperacionesList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+                        <div class="empty-state" style="grid-column:1/-1;">⏳ Cargando...</div>
+                    </div>
+
+                    <div id="adminOperacionesForm" style="display:none;margin-top:16px;background:var(--gray-50);padding:20px;border-radius:14px;border:2px solid var(--secondary);box-shadow:0 8px 24px rgba(45,116,218,0.1);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                            <h4 style="margin:0;color:var(--primary);font-size:1rem;">✏️ <span id="adminOperacionFormTitulo">Editar Operación</span></h4>
+                            <button onclick="cerrarFormOperacion()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--gray-600);">✕</button>
+                        </div>
+
+                        <input type="hidden" id="adminOperacionId">
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>🔢 Número de operación *</label>
+                                <input type="text" id="adminOperacionNumero" placeholder="Ej: 525277" maxlength="20" oninput="actualizarPreviewOperacion()">
+                                <small style="color:var(--gray-600);font-size:0.7rem;">Debe ser único dentro del modelo.</small>
+                            </div>
+                            <div class="form-group">
+                                <label>📝 Descripción</label>
+                                <input type="text" id="adminOperacionDescripcion" placeholder="Ej: Convertidor MS3 Lote A" maxlength="60" oninput="actualizarPreviewOperacion()">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>🏭 Modelo *</label>
+                            <div style="display:flex;gap:10px;margin-top:4px;">
+                                <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.9rem;transition:all 0.15s ease;" id="radioOpModeloMS3Label">
+                                    <input type="radio" name="adminOperacionModelo" value="MS3" id="radioOpModeloMS3" checked onchange="actualizarPreviewOperacion()" style="display:none;">
+                                    <span style="font-size:1.3rem;">🔷</span>
+                                    <span>MS3</span>
+                                </label>
+                                <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.9rem;transition:all 0.15s ease;" id="radioOpModeloDC3Label">
+                                    <input type="radio" name="adminOperacionModelo" value="DC3" id="radioOpModeloDC3" onchange="actualizarPreviewOperacion()" style="display:none;">
+                                    <span style="font-size:1.3rem;">🔶</span>
+                                    <span>DC3</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style="background:white;border-radius:10px;padding:14px;margin-top:14px;border:1px dashed #cbd5e1;">
+                            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;margin-bottom:8px;">👁️ Vista previa</div>
+                            <div id="adminOperacionPreview" style="display:flex;align-items:center;gap:12px;"></div>
+                        </div>
+
+                        <div style="display:flex;gap:8px;margin-top:16px;">
+                            <button class="btn btn-success" onclick="guardarOperacionAdmin()" style="flex:1;">💾 Guardar Operación</button>
+                            <button class="btn btn-danger btn-sm" onclick="eliminarOperacionAdmin()" id="btnEliminarOperacion" style="display:none;">🗑️ Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+<div class="admin-panel" id="adminPanelMontajes" style="display:none;">
+    <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+            <h3 style="margin:0;">📦 Montajes</h3>
+            <button class="btn btn-primary btn-sm" onclick="mostrarFormNuevoMontaje()" style="padding:8px 14px;">➕ Nuevo Montaje</button>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+            <div style="flex:1;min-width:150px;">
+                <input type="text" id="adminMontajesBusqueda" placeholder="🔍 Buscar por nombre o descripción..." oninput="cargarAdminMontajes()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+            </div>
+            <select id="filtroModeloAdminMontajes" onchange="cargarAdminMontajes()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todos">🏭 Todos los modelos</option>
+                <option value="MS3">🔷 MS3</option>
+                <option value="DC3">🔶 DC3</option>
+            </select>
+            <select id="filtroEstacionAdminMontajes" onchange="cargarAdminMontajes()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todas">📍 Todas las estaciones</option>
+            </select>
+            <div id="adminMontajesContador" style="font-size:0.78rem;color:#64748b;font-weight:600;white-space:nowrap;">0 montajes</div>
+        </div>
+
+        <div id="adminMontajesList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;">
+            <div class="empty-state" style="grid-column:1/-1;">⏳ Cargando...</div>
+        </div>
+
+        <div id="adminMontajesForm" style="display:none;margin-top:16px;background:var(--gray-50);padding:20px;border-radius:14px;border:2px solid var(--secondary);box-shadow:0 8px 24px rgba(45,116,218,0.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h4 style="margin:0;color:var(--primary);font-size:1rem;">✏️ <span id="adminMontajeFormTitulo">Editar Montaje</span></h4>
+                <button onclick="cerrarFormMontaje()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--gray-600);">✕</button>
+            </div>
+
+            <input type="hidden" id="adminMontajeId">
+
+            <details open style="background:white;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:12px;overflow:hidden;">
+                <summary style="padding:12px 16px;cursor:pointer;font-weight:700;color:#1e293b;background:#f8fafc;font-size:0.9rem;user-select:none;">
+                    📋 Datos básicos
+                </summary>
+                <div style="padding:16px;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>📝 Nombre del montaje *</label>
+                            <input type="text" id="adminMontajeNombre" placeholder="Ej: 110" maxlength="60" oninput="actualizarPreviewMontaje()">
+                        </div>
+                        <div class="form-group">
+                            <label>🔢 Orden *</label>
+                            <input type="number" id="adminMontajeOrden" placeholder="Ej: 1" min="1" oninput="actualizarPreviewMontaje()">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>⏱️ Tiempo estimado (horas) *</label>
+                            <input type="number" id="adminMontajeTiempo" placeholder="Ej: 0.5" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>🎨 Icono (opcional)</label>
+                            <input type="text" id="adminMontajeIcono" placeholder="Ej: ⚙️" maxlength="4">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📍 Estación *</label>
+                        <select id="adminMontajeEstacion" onchange="onCambioEstacionMontaje()" style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;">
+                            <option value="">— Selecciona una estación —</option>
+                        </select>
+                        <small style="color:var(--gray-600);font-size:0.7rem;">El modelo (MS3/DC3) se asigna automáticamente según la estación.</small>
+                    </div>
+
+<div class="form-group">
+    <label>👷 Asignado a</label>
+    <select id="adminMontajeOperario" style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;">
+        <option value="">— Sin asignar —</option>
+        <option value="operario1">Operario 1</option>
+        <option value="operario2">Operario 2</option>
+    </select>
+    <small style="color:var(--gray-600);font-size:0.7rem;">Lo usan los filtros Operario 1 / Operario 2 de la vista del operario y del dashboard.</small>
+</div>
+
+
+                    <div class="form-group">
+                        <label>📝 Descripción</label>
+                        <input type="text" id="adminMontajeDescripcion" placeholder="Descripción breve del montaje" maxlength="120">
+                    </div>
+
+                    <div class="form-group">
+                        <label>🔗 Depende de (opcional)</label>
+                        <input type="text" id="adminMontajeDependeDe" placeholder="Nombre o código del montaje del que depende" maxlength="60">
+                        <small style="color:var(--gray-600);font-size:0.7rem;">Si este montaje solo se puede hacer después de otro.</small>
+                    </div>
+                </div>
+            </details>
+
+            <details style="background:white;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:12px;overflow:hidden;">
+                <summary style="padding:12px 16px;cursor:pointer;font-weight:700;color:#1e293b;background:#f8fafc;font-size:0.9rem;user-select:none;">
+                    🔩 Tornillería <span id="adminMontajeTornCount" style="color:#8b5cf6;font-weight:600;font-size:0.8rem;">(0)</span>
+                </summary>
+                <div style="padding:16px;">
+                    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                        <select id="adminMontajeTornSelector" style="flex:1;min-width:180px;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+                            <option value="">— Selecciona tornillería —</option>
+                        </select>
+                        <input type="number" id="adminMontajeTornCantidad" placeholder="Cant." value="1" min="1" style="width:80px;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+                        <button type="button" onclick="añadirTornilleriaMontaje()" class="btn btn-primary btn-sm" style="padding:8px 14px;">➕ Añadir</button>
+                    </div>
+                    <div id="adminMontajeTornLista" style="display:flex;flex-direction:column;gap:6px;"></div>
+                </div>
+            </details>
+
+            <details style="background:white;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:12px;overflow:hidden;">
+                <summary style="padding:12px 16px;cursor:pointer;font-weight:700;color:#1e293b;background:#f8fafc;font-size:0.9rem;user-select:none;">
+                    🧪 Materiales y componentes <span id="adminMontajeMatCount" style="color:#f97316;font-weight:600;font-size:0.8rem;">(0)</span>
+                </summary>
+                <div style="padding:16px;">
+                    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                        <select id="adminMontajeMatSelector" style="flex:1;min-width:180px;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+                            <option value="">— Selecciona material —</option>
+                        </select>
+                        <input type="number" id="adminMontajeMatCantidad" placeholder="Cant." value="1" min="1" style="width:80px;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+                        <button type="button" onclick="añadirMaterialMontaje()" class="btn btn-primary btn-sm" style="padding:8px 14px;">➕ Añadir</button>
+                    </div>
+                    <div id="adminMontajeMatLista" style="display:flex;flex-direction:column;gap:6px;"></div>
+                </div>
+            </details>
+
+            <details style="background:white;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:12px;overflow:hidden;">
+                <summary style="padding:12px 16px;cursor:pointer;font-weight:700;color:#1e293b;background:#f8fafc;font-size:0.9rem;user-select:none;">
+                    🔗 Piezas Kanban <span id="adminMontajePiezaCount" style="color:#10b981;font-weight:600;font-size:0.8rem;">(0)</span>
+                </summary>
+                <div style="padding:16px;">
+                    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                        <select id="adminMontajePiezaSelector" style="flex:1;min-width:180px;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+                            <option value="">— Selecciona pieza —</option>
+                        </select>
+                        <input type="number" id="adminMontajePiezaCantidad" placeholder="Cant." value="1" min="1" style="width:80px;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+                        <button type="button" onclick="añadirPiezaMontaje()" class="btn btn-primary btn-sm" style="padding:8px 14px;">➕ Añadir</button>
+                    </div>
+                    <div id="adminMontajePiezaLista" style="display:flex;flex-direction:column;gap:6px;"></div>
+                </div>
+            </details>
+
+<details style="background:white;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:12px;overflow:hidden;">
+    <summary style="padding:12px 16px;cursor:pointer;font-weight:700;color:#1e293b;background:#f8fafc;font-size:0.9rem;user-select:none;">
+        🔧 Pares de apriete (opcional)
+    </summary>
+    <div style="padding:16px;">
+        <div class="form-group">
+            <label>Pares requeridos (Nm, separados por comas)</label>
+            <input type="text" id="adminMontajePares" placeholder="Ej: 56,120,25" style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;">
+            <small style="color:var(--gray-600);font-size:0.7rem;">Solo si el montaje necesita llaves dinamométricas específicas.</small>
+        </div>
+    </div>
+</details>
+
+<details style="background:white;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:12px;overflow:hidden;">
+    <summary style="padding:12px 16px;cursor:pointer;font-weight:700;color:#1e293b;background:#f8fafc;font-size:0.9rem;user-select:none;">
+        📋 Pasos del montaje <span id="adminMontajePasosCount" style="color:#6366f1;font-weight:600;font-size:0.8rem;">(0)</span>
+    </summary>
+    <div style="padding:16px;">
+        <p style="font-size:0.78rem;color:#64748b;margin:0 0 12px 0;line-height:1.5;">
+            ⚠️ El operario deberá <strong>confirmar todos estos pasos</strong> antes de poder terminar el montaje. Úsalos para evitar olvidos.
+        </p>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <input type="text" id="adminMontajeNuevoPaso" placeholder="Ej: Apretar 4 tornillos M12 lado izquierdo (56Nm)" maxlength="120" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;" onkeydown="if(event.key==='Enter'){event.preventDefault();añadirPasoMontaje();}">
+            <button type="button" onclick="añadirPasoMontaje()" class="btn btn-primary btn-sm" style="padding:8px 14px;">➕ Añadir paso</button>
+        </div>
+
+        <div id="adminMontajePasosLista" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+</details>
+
+            <details style="background:white;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:12px;overflow:hidden;">
+                <summary style="padding:12px 16px;cursor:pointer;font-weight:700;color:#1e293b;background:#f8fafc;font-size:0.9rem;user-select:none;">
+                    📖 Instrucciones (opcional)
+                </summary>
+                <div style="padding:16px;">
+                    <div class="form-group">
+                        <label>📋 Pasos de montaje (texto)</label>
+                        <textarea id="adminMontajeInstrucciones" placeholder="1. Paso uno&#10;2. Paso dos&#10;3. Paso tres" rows="6" style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;resize:vertical;"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>▶️ URL de video (opcional)</label>
+                        <input type="text" id="adminMontajeVideo" placeholder="https://youtube.com/watch?v=..." style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;">
+                        <small style="color:var(--gray-600);font-size:0.7rem;">YouTube, Vimeo o enlace directo a .mp4</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📄 URLs de PDFs (separados por saltos de línea)</label>
+                        <textarea id="adminMontajePdfs" placeholder="https://...pdf&#10;https://...pdf" rows="3" style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;resize:vertical;"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🖼️ URLs de fotos (separados por saltos de línea)</label>
+                        <textarea id="adminMontajeFotos" placeholder="https://...jpg&#10;https://...png" rows="3" style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;resize:vertical;"></textarea>
+                    </div>
+                </div>
+            </details>
+
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn btn-success" onclick="guardarMontajeAdmin()" style="flex:1;">💾 Guardar Montaje</button>
+                <button class="btn btn-danger btn-sm" onclick="eliminarMontajeAdmin()" id="btnEliminarMontaje" style="display:none;">🗑️ Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanelKanban" style="display:none;">
+    <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+            <h3 style="margin:0;">📦 Piezas Kanban</h3>
+            <button class="btn btn-primary btn-sm" onclick="mostrarFormNuevaPieza()" style="padding:8px 14px;">➕ Nueva Pieza</button>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+            <div style="flex:1;min-width:150px;">
+                <input type="text" id="adminPiezasBusqueda" placeholder="🔍 Buscar por nombre, código o ubicación..." oninput="cargarAdminPiezas()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+            </div>
+            <select id="filtroStockAdminPiezas" onchange="cargarAdminPiezas()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todos">📦 Todas</option>
+                <option value="criticos">⚠️ Stock crítico</option>
+                <option value="agotados">🚫 Agotadas</option>
+                <option value="ok">✅ Stock OK</option>
+            </select>
+            <div id="adminPiezasContador" style="font-size:0.78rem;color:#64748b;font-weight:600;white-space:nowrap;">0 piezas</div>
+        </div>
+
+        <div id="adminPiezasList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+            <div class="empty-state" style="grid-column:1/-1;">⏳ Cargando...</div>
+        </div>
+
+        <div id="adminPiezasForm" style="display:none;margin-top:16px;background:var(--gray-50);padding:20px;border-radius:14px;border:2px solid var(--secondary);box-shadow:0 8px 24px rgba(45,116,218,0.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h4 style="margin:0;color:var(--primary);font-size:1rem;">✏️ <span id="adminPiezaFormTitulo">Editar Pieza</span></h4>
+                <button onclick="cerrarFormPieza()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--gray-600);">✕</button>
+            </div>
+
+            <input type="hidden" id="adminPiezaId">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📝 Nombre *</label>
+                    <input type="text" id="adminPiezaNombre" placeholder="Ej: Junta 5mm" maxlength="60" oninput="actualizarPreviewPieza()">
+                </div>
+                <div class="form-group">
+                    <label>🔢 Código *</label>
+                    <input type="text" id="adminPiezaCodigo" placeholder="Ej: 3EH-1234-0001R" maxlength="40" oninput="actualizarPreviewPieza()">
+                    <small style="color:var(--gray-600);font-size:0.7rem;">Se usa como identificador de la pieza.</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>📍 Ubicación</label>
+                <input type="text" id="adminPiezaUbicacion" placeholder="Ej: B3" maxlength="30" oninput="actualizarPreviewPieza()">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📦 Stock actual</label>
+                    <input type="number" id="adminPiezaStockActual" placeholder="0" min="0" value="0" oninput="actualizarPreviewPieza()">
+                </div>
+                <div class="form-group">
+                    <label>⚠️ Stock crítico</label>
+                    <input type="number" id="adminPiezaStockCritico" placeholder="5" min="0" value="5" oninput="actualizarPreviewPieza()">
+                    <small style="color:var(--gray-600);font-size:0.7rem;">Cuando el stock baje a este valor, se marcará como crítico.</small>
+                </div>
+            </div>
+
+            <div style="background:white;border-radius:10px;padding:14px;margin-top:14px;border:1px dashed #cbd5e1;">
+                <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;margin-bottom:8px;">👁️ Vista previa</div>
+                <div id="adminPiezaPreview" style="display:flex;align-items:center;gap:12px;"></div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn btn-success" onclick="guardarPiezaAdmin()" style="flex:1;">💾 Guardar Pieza</button>
+                <button class="btn btn-danger btn-sm" onclick="eliminarPiezaAdmin()" id="btnEliminarPieza" style="display:none;">🗑️ Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanelMateriales" style="display:none;">
+    <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+            <h3 style="margin:0;">🧪 Materiales</h3>
+            <button class="btn btn-primary btn-sm" onclick="mostrarFormNuevoMaterial()" style="padding:8px 14px;">➕ Nuevo Material</button>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+            <div style="flex:1;min-width:150px;">
+                <input type="text" id="adminMaterialesBusqueda" placeholder="🔍 Buscar por nombre o código..." oninput="cargarAdminMateriales()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+            </div>
+      <select id="filtroTipoAdminMateriales" onchange="cargarAdminMateriales()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+    <option value="todos">📦 Todos</option>
+    <option value="normales">🔧 Solo normales</option>
+    <option value="escaneo">📷 Solo con escaneo</option>
+    <option value="resistencias">⚡ Solo resistencias</option>
+</select>
+            <div id="adminMaterialesContador" style="font-size:0.78rem;color:#64748b;font-weight:600;white-space:nowrap;">0 materiales</div>
+        </div>
+
+        <div id="adminMaterialesList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+            <div class="empty-state" style="grid-column:1/-1;">⏳ Cargando...</div>
+        </div>
+
+        <div id="adminMaterialesForm" style="display:none;margin-top:16px;background:var(--gray-50);padding:20px;border-radius:14px;border:2px solid var(--secondary);box-shadow:0 8px 24px rgba(45,116,218,0.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h4 style="margin:0;color:var(--primary);font-size:1rem;">✏️ <span id="adminMaterialFormTitulo">Editar Material</span></h4>
+                <button onclick="cerrarFormMaterial()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--gray-600);">✕</button>
+            </div>
+
+            <input type="hidden" id="adminMaterialId">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📝 Nombre del material *</label>
+                    <input type="text" id="adminMaterialNombre" placeholder="Ej: Busbar 18" maxlength="60" oninput="actualizarPreviewMaterial()">
+                </div>
+                <div class="form-group">
+                    <label>🔢 Código / Referencia</label>
+                    <input type="text" id="adminMaterialCodigo" placeholder="Ej: 3EH-12345-0001R" maxlength="40" oninput="actualizarPreviewMaterial()">
+                    <small style="color:var(--gray-600);font-size:0.7rem;">Opcional pero recomendado.</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>📍 Ubicación</label>
+                <input type="text" id="adminMaterialUbicacion" placeholder="Ej: A2" maxlength="30" oninput="actualizarPreviewMaterial()">
+            </div>
+
+         <div class="form-group" style="margin-top:14px;">
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:14px;background:white;border:2px solid #cbd5e1;border-radius:10px;transition:all 0.15s ease;" id="adminMaterialEscaneoLabel">
+        <input type="checkbox" id="adminMaterialRequiereEscaneo" onchange="actualizarPreviewMaterial()" style="width:20px;height:20px;cursor:pointer;">
+        <div style="flex:1;">
+            <div style="font-weight:700;color:#1e293b;font-size:0.9rem;">📷 Requiere escaneo QR</div>
+            <div style="font-size:0.75rem;color:#64748b;margin-top:2px;">Marca esta casilla si el material necesita ser escaneado durante el montaje.</div>
+        </div>
+    </label>
+</div>
+
+<div class="form-group" style="margin-top:8px;">
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:14px;background:white;border:2px solid #cbd5e1;border-radius:10px;transition:all 0.15s ease;" id="adminMaterialResistenciaLabel">
+        <input type="checkbox" id="adminMaterialEsResistencia" onchange="actualizarPreviewMaterial()" style="width:20px;height:20px;cursor:pointer;">
+        <div style="flex:1;">
+            <div style="font-weight:700;color:#1e293b;font-size:0.9rem;">⚡ Es resistencia</div>
+            <div style="font-size:0.75rem;color:#64748b;margin-top:2px;">Marca esta casilla si el material es una resistencia eléctrica.</div>
+        </div>
+    </label>
+</div>
+<div class="form-group" id="adminMaterialNombresResistenciasGroup" style="display:none;margin-top:8px;">
+    <label style="display:block;font-size:0.8rem;font-weight:700;color:#92400e;margin-bottom:6px;">
+        📋 Lista de nombres de resistencias
+    </label>
+    <textarea id="adminMaterialNombresResistencias" rows="8"
+        placeholder="RA1101&#10;RA1109&#10;RA1121&#10;RA2101&#10;RA2109"
+        style="width:100%;padding:10px 12px;border:2px solid #fbbf24;border-radius:10px;font-size:0.85rem;font-family:'SF Mono',Monaco,monospace;resize:vertical;background:#fffbeb;font-weight:700;line-height:1.7;color:#78350f;letter-spacing:0.02em;"></textarea>
+    <small style="color:#92400e;font-size:0.72rem;display:block;margin-top:6px;line-height:1.5;">
+        ⚠️ <strong>Un nombre por línea</strong>. Se usarán en orden en el modal de resistencias del montaje.<br>
+        Ej: si el montaje pide <strong>18 uds</strong> y defines 18 nombres → cada fila muestra su nombre.<br>
+        Si defines menos de los que pide el montaje → las sobrantes usan el nombre del material.
+    </small>
+</div>
+            <div style="background:white;border-radius:10px;padding:14px;margin-top:14px;border:1px dashed #cbd5e1;">
+                <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;margin-bottom:8px;">👁️ Vista previa</div>
+                <div id="adminMaterialPreview" style="display:flex;align-items:center;gap:12px;"></div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn btn-success" onclick="guardarMaterialAdmin()" style="flex:1;">💾 Guardar Material</button>
+                <button class="btn btn-danger btn-sm" onclick="eliminarMaterialAdmin()" id="btnEliminarMaterial" style="display:none;">🗑️ Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanelHerramientas" style="display:none;">
+    <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+            <h3 style="margin:0;">🔧 Herramientas</h3>
+            <button class="btn btn-primary btn-sm" onclick="mostrarFormNuevaHerramienta()" style="padding:8px 14px;">➕ Nueva Herramienta</button>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+            <div style="flex:1;min-width:150px;">
+                <input type="text" id="adminHerramientasBusqueda" placeholder="🔍 Buscar por nombre, código o ubicación..." oninput="cargarAdminHerramientas()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+            </div>
+            <select id="filtroTipoAdminHerramientas" onchange="cargarAdminHerramientas()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todos">🔧 Todos los tipos</option>
+                <option value="Llave Dinamométrica">🔧 Dinamométricas</option>
+                <option value="Llave Fija">🔩 Llaves Fijas</option>
+                <option value="Destornillador">🪛 Destornilladores</option>
+                <option value="Otro">📦 Otros</option>
+            </select>
+       <select id="filtroEstadoAdminHerramientas" onchange="cargarAdminHerramientas()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+    <option value="todos">📊 Todos los estados</option>
+    <option value="disponible">🟢 Disponibles</option>
+    <option value="reservada">🔵 Reservadas</option>
+    <option value="en_uso">🟡 En uso</option>
+    <option value="en_calibracion">🟠 En calibración</option>
+</select>
+            <div id="adminHerramientasContador" style="font-size:0.78rem;color:#64748b;font-weight:600;white-space:nowrap;">0 items</div>
+        </div>
+
+        <div id="adminHerramientasList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+            <div class="empty-state" style="grid-column:1/-1;">⏳ Cargando...</div>
+        </div>
+
+        <div id="adminHerramientasForm" style="display:none;margin-top:16px;background:var(--gray-50);padding:20px;border-radius:14px;border:2px solid var(--secondary);box-shadow:0 8px 24px rgba(45,116,218,0.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h4 style="margin:0;color:var(--primary);font-size:1rem;">✏️ <span id="adminHerramientaFormTitulo">Editar Herramienta</span></h4>
+                <button onclick="cerrarFormHerramienta()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--gray-600);">✕</button>
+            </div>
+
+            <input type="hidden" id="adminHerramientaId">
+
+            <div class="form-group">
+                <label>🏷️ Tipo *</label>
+                <div id="adminHerramientaTipoPicker" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:4px;">
+                    <label class="tipo-radio-herr" data-tipo="Llave Dinamométrica" onclick="seleccionarTipoHerramienta('Llave Dinamométrica')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.15s ease;">
+                        <span style="font-size:1.4rem;">🔧</span>
+                        <span>Llave Dinamométrica</span>
+                    </label>
+                    <label class="tipo-radio-herr" data-tipo="Llave Fija" onclick="seleccionarTipoHerramienta('Llave Fija')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.15s ease;">
+                        <span style="font-size:1.4rem;">🔩</span>
+                        <span>Llave Fija</span>
+                    </label>
+                    <label class="tipo-radio-herr" data-tipo="Destornillador" onclick="seleccionarTipoHerramienta('Destornillador')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.15s ease;">
+                        <span style="font-size:1.4rem;">🪛</span>
+                        <span>Destornillador</span>
+                    </label>
+                    <label class="tipo-radio-herr" data-tipo="Otro" onclick="seleccionarTipoHerramienta('Otro')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.15s ease;">
+                        <span style="font-size:1.4rem;">📦</span>
+                        <span>Otro</span>
+                    </label>
+                </div>
+            </div>
+
+    <div class="form-row" style="margin-top:14px;">
+    <div class="form-group">
+        <label>#️⃣ Número (automático)</label>
+        <input type="text" id="adminHerramientaNumero" placeholder="Se genera al guardar" readonly style="background:#f1f5f9;color:#64748b;cursor:not-allowed;font-family:'SF Mono',Monaco,monospace;text-align:center;font-weight:700;">
+        <small style="color:var(--gray-600);font-size:0.7rem;">🔒 Enumeración por tipo.</small>
+    </div>
+    <div class="form-group">
+        <label>🔢 Código (automático)</label>
+        <input type="text" id="adminHerramientaCodigo" placeholder="Ej: 3EH-1234-0001R" maxlength="40" oninput="actualizarPreviewHerramienta()" style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;">
+        <small style="color:var(--gray-600);font-size:0.7rem;">🔒 Se asigna automáticamente al guardar.</small>
+    </div>
+</div>
+
+<div class="form-group">
+    <label>📝 Nombre *</label>
+    <input type="text" id="adminHerramientaNombre" placeholder="Ej: Llave dinamométrica 56Nm" maxlength="60" oninput="actualizarPreviewHerramienta()">
+</div>
+
+            <div class="form-row">
+                <div class="form-group" id="adminHerramientaParGroup">
+                    <label>💪 Par de apriete (Nm)</label>
+                    <input type="number" id="adminHerramientaPar" placeholder="Ej: 56" min="0" step="0.1" oninput="actualizarPreviewHerramienta()">
+                    <small style="color:var(--gray-600);font-size:0.7rem;">Solo para llaves dinamométricas.</small>
+                </div>
+                <div class="form-group">
+                    <label>📍 Ubicación</label>
+                    <input type="text" id="adminHerramientaUbicacion" placeholder="Ej: A2" maxlength="30" oninput="actualizarPreviewHerramienta()">
+                </div>
+            </div>
+
+<div class="form-group">
+    <label>📊 Estado</label>
+    <select id="adminHerramientaEstado" onchange="onCambioEstadoHerramienta()" style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;">
+        <option value="disponible">🟢 Disponible</option>
+        <option value="reservada">🔵 Reservada</option>
+        <option value="en_uso">🟡 En uso</option>
+        <option value="en_calibracion">🟠 En calibración</option>
+    </select>
+</div>
+
+<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-size:1.1rem;">📅</span>
+        <span style="font-weight:700;color:#1e293b;font-size:0.9rem;">Calibración</span>
+        <span id="adminHerramientaCalibEstado" style="margin-left:auto;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:99px;"></span>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>📅 Última calibración</label>
+            <input type="date" id="adminHerramientaFechaUltimaCalib" style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;">
+            <small style="color:var(--gray-600);font-size:0.7rem;">Cuándo se calibró por última vez.</small>
+        </div>
+   <div class="form-group">
+    <label>⏰ Vencimiento</label>
+    <input type="date" id="adminHerramientaFechaProxCalib" oninput="actualizarBadgeCalibracion()" style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;">
+    <small style="color:var(--gray-600);font-size:0.7rem;">Cuándo caduca la calibración actual.</small>
+</div>
+    </div>
+
+    <div id="adminHerramientaFechaEnvioGroup" style="display:none;">
+        <div class="form-group">
+            <label>📤 Fecha de envío a calibrar</label>
+            <input type="date" id="adminHerramientaFechaEnvioCalib" style="width:100%;padding:0.55rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.82rem;font-family:inherit;">
+        </div>
+    </div>
+</div>
+
+            <div class="form-group">
+                <label>💬 Notas (opcional)</label>
+                <input type="text" id="adminHerramientaNotas" placeholder="Ej: Le falta el estuche" maxlength="120" oninput="actualizarPreviewHerramienta()">
+            </div>
+
+            <div style="background:white;border-radius:10px;padding:14px;margin-top:14px;border:1px dashed #cbd5e1;">
+                <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;margin-bottom:8px;">👁️ Vista previa</div>
+                <div id="adminHerramientaPreview" style="display:flex;align-items:center;gap:12px;"></div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn btn-success" onclick="guardarHerramientaAdmin()" style="flex:1;">💾 Guardar</button>
+                <button class="btn btn-danger btn-sm" onclick="eliminarHerramientaAdmin()" id="btnEliminarHerramienta" style="display:none;">🗑️ Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanelEntregarMateriales" style="display:none;">
+    <div class="panel">
+        <h3>📥 Entregar Materiales</h3>
+        <p style="font-size:0.85rem;color:#64748b;margin-bottom:1rem;">
+            Selecciona una operación y estación para ver y marcar los materiales a entregar.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem;background:#f8fafc;padding:14px;border-radius:10px;border:1px solid #e5e7eb;">
+            <div>
+                <label style="display:block;font-size:0.78rem;font-weight:700;color:#64748b;margin-bottom:4px;">📋 Operación</label>
+                <select id="entregaOperacionSelect" onchange="onCambioOperacionEntrega()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+                    <option value="">— Selecciona operación —</option>
+                </select>
+            </div>
+            <div>
+                <label style="display:block;font-size:0.78rem;font-weight:700;color:#64748b;margin-bottom:4px;">📍 Estación</label>
+                <select id="entregaEstacionSelect" onchange="cargarEntregaMateriales()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;" disabled>
+                    <option value="">— Selecciona estación —</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="adminEntregaMaterialesList">
+            <div class="empty-state">👆 Selecciona una operación y estación para empezar</div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanelRegistroVerificaciones" style="display:none;">
+    <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+            <h3 style="margin:0;">📋 Registro de Verificaciones</h3>
+            <button class="btn btn-outline btn-sm" onclick="cargarRegistroVerificaciones()" style="padding:8px 14px;">🔄 Refrescar</button>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+            <div style="flex:1;min-width:150px;">
+                <input type="text" id="regVerifBusqueda" placeholder="🔍 Buscar por montaje u operario..." oninput="cargarRegistroVerificaciones()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+            </div>
+            <select id="regVerifFiltroOperario" onchange="cargarRegistroVerificaciones()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todos">👤 Todos los operarios</option>
+            </select>
+            <select id="regVerifFiltroFecha" onchange="cargarRegistroVerificaciones()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todo">📅 Todo</option>
+                <option value="hoy">📅 Hoy</option>
+                <option value="semana">📅 Últimos 7 días</option>
+                <option value="mes">📅 Últimos 30 días</option>
+            </select>
+            <div id="regVerifContador" style="font-size:0.78rem;color:#64748b;font-weight:600;white-space:nowrap;">0 registros</div>
+        </div>
+
+        <div id="regVerifLista" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="empty-state">⏳ Cargando...</div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanelRegistroHerramientas" style="display:none;">
+    <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+            <h3 style="margin:0;">📜 Registro de Herramientas</h3>
+            <button class="btn btn-outline btn-sm" onclick="cargarRegistroHerramientas()" style="padding:8px 14px;">🔄 Refrescar</button>
+        </div>
+
+        <div id="regHerrStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem;">
+            <div style="background:linear-gradient(135deg,#eef2ff,white);border:1px solid #c7d2fe;border-radius:14px;padding:1rem;text-align:center;">
+                <div style="font-size:1.5rem;margin-bottom:4px;">📜</div>
+                <div id="regHerrStatTotal" style="font-size:1.6rem;font-weight:800;color:#4338ca;line-height:1;">0</div>
+                <div style="font-size:0.72rem;color:#4338ca;font-weight:600;margin-top:4px;">Registros</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#ecfdf5,white);border:1px solid #a7f3d0;border-radius:14px;padding:1rem;text-align:center;">
+                <div style="font-size:1.5rem;margin-bottom:4px;">👤</div>
+                <div id="regHerrStatOperarios" style="font-size:1.6rem;font-weight:800;color:#047857;line-height:1;">0</div>
+                <div style="font-size:0.72rem;color:#047857;font-weight:600;margin-top:4px;">Operarios</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#fef3c7,white);border:1px solid #fde68a;border-radius:14px;padding:1rem;text-align:center;">
+                <div style="font-size:1.5rem;margin-bottom:4px;">🔧</div>
+                <div id="regHerrStatHerramientas" style="font-size:1.6rem;font-weight:800;color:#92400e;line-height:1;">0</div>
+                <div style="font-size:0.72rem;color:#92400e;font-weight:600;margin-top:4px;">Herramientas</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#fff7ed,white);border:1px solid #fed7aa;border-radius:14px;padding:1rem;text-align:center;">
+                <div style="font-size:1.5rem;margin-bottom:4px;">📅</div>
+                <div id="regHerrStatSemana" style="font-size:1.6rem;font-weight:800;color:#c2410c;line-height:1;">0</div>
+                <div style="font-size:0.72rem;color:#c2410c;font-weight:600;margin-top:4px;">Últimos 7 días</div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+            <div style="flex:1;min-width:150px;">
+                <input type="text" id="regHerrBusqueda"
+                    placeholder="🔍 Buscar por operario, herramienta, montaje, op..."
+                    oninput="cargarRegistroHerramientas()"
+                    style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+            </div>
+            <select id="regHerrFiltroOperario" onchange="cargarRegistroHerramientas()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todos">👤 Todos los operarios</option>
+            </select>
+        <select id="regHerrFiltroOperacion" onchange="cargarRegistroHerramientas()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;max-width:180px;">
+    <option value="todas">🔢 Todas las operaciones</option>
+</select>
+<select id="regHerrFiltroFecha" onchange="cargarRegistroHerramientas()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+    <option value="todo">📅 Todo</option>
+    <option value="hoy">📅 Hoy</option>
+    <option value="semana">📅 7 días</option>
+    <option value="mes">📅 30 días</option>
+</select>
+<div id="regHerrContador" style="font-size:0.78rem;color:#64748b;font-weight:600;white-space:nowrap;">0 registros</div>
+        </div>
+
+        <div id="regHerrLista" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="empty-state">⏳ Cargando...</div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanelMovimientosKanban" style="display:none;">
+    <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+            <h3 style="margin:0;">📊 Movimientos Kanban</h3>
+            <button class="btn btn-outline btn-sm" onclick="cargarMovimientosKanban()" style="padding:8px 14px;">🔄 Refrescar</button>
+        </div>
+
+        <div id="movKanbanStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem;">
+            <div style="background:linear-gradient(135deg,#eef2ff,white);border:1px solid #c7d2fe;border-radius:14px;padding:1rem;text-align:center;">
+                <div style="font-size:1.5rem;margin-bottom:4px;">📜</div>
+                <div id="movKanbanStatTotal" style="font-size:1.6rem;font-weight:800;color:#4338ca;line-height:1;">0</div>
+                <div style="font-size:0.72rem;color:#4338ca;font-weight:600;margin-top:4px;">Total mov.</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#ecfdf5,white);border:1px solid #a7f3d0;border-radius:14px;padding:1rem;text-align:center;">
+                <div style="font-size:1.5rem;margin-bottom:4px;">📥</div>
+                <div id="movKanbanStatEntradas" style="font-size:1.6rem;font-weight:800;color:#047857;line-height:1;">0</div>
+                <div style="font-size:0.72rem;color:#047857;font-weight:600;margin-top:4px;">Entradas hoy</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#fef2f2,white);border:1px solid #fecaca;border-radius:14px;padding:1rem;text-align:center;">
+                <div style="font-size:1.5rem;margin-bottom:4px;">📤</div>
+                <div id="movKanbanStatSalidas" style="font-size:1.6rem;font-weight:800;color:#b91c1c;line-height:1;">0</div>
+                <div style="font-size:0.72rem;color:#b91c1c;font-weight:600;margin-top:4px;">Salidas hoy</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#fff7ed,white);border:1px solid #fed7aa;border-radius:14px;padding:1rem;text-align:center;">
+                <div style="font-size:1.5rem;margin-bottom:4px;">📦</div>
+                <div id="movKanbanStatPiezas" style="font-size:1.6rem;font-weight:800;color:#c2410c;line-height:1;">0</div>
+                <div style="font-size:0.72rem;color:#c2410c;font-weight:600;margin-top:4px;">Piezas movidas</div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+            <div style="flex:1;min-width:150px;">
+                <input type="text" id="movKanbanBusqueda"
+                    placeholder="🔍 Buscar por pieza, operario, montaje, op..."
+                    oninput="cargarMovimientosKanban()"
+                    style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+            </div>
+            <select id="movKanbanFiltroTipo" onchange="cargarMovimientosKanban()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todos">📋 Todos los tipos</option>
+                <option value="entrada">📥 Entradas</option>
+                <option value="salida">📤 Salidas</option>
+                <option value="ajuste">✏️ Ajustes</option>
+            </select>
+            <select id="movKanbanFiltroPieza" onchange="cargarMovimientosKanban()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;max-width:200px;">
+                <option value="todas">📦 Todas las piezas</option>
+            </select>
+            <select id="movKanbanFiltroOperario" onchange="cargarMovimientosKanban()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todos">👤 Todos</option>
+            </select>
+            <select id="movKanbanFiltroFecha" onchange="cargarMovimientosKanban()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todo">📅 Todo</option>
+                <option value="hoy">📅 Hoy</option>
+                <option value="semana">📅 7 días</option>
+                <option value="mes">📅 30 días</option>
+            </select>
+            <div id="movKanbanContador" style="font-size:0.78rem;color:#64748b;font-weight:600;white-space:nowrap;margin-left:auto;">0 movimientos</div>
+        </div>
+
+        <div id="movKanbanLista" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="empty-state">⏳ Cargando...</div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanelTornilleria" style="display:none;">
+    <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+            <h3 style="margin:0;">🔩 Tornillería</h3>
+            <button class="btn btn-primary btn-sm" onclick="mostrarFormNuevaTornilleria()" style="padding:8px 14px;">➕ Nueva Tornillería</button>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+            <div style="flex:1;min-width:150px;">
+                <input type="text" id="adminTornilleriaBusqueda" placeholder="🔍 Buscar por nombre, código o ubicación..." oninput="cargarAdminTornilleria()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+            </div>
+            <select id="filtroTipoAdminTornilleria" onchange="cargarAdminTornilleria()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todos">📦 Todos los tipos</option>
+                <option value="Tornillo">🔩 Tornillos</option>
+                <option value="Tuerca">⚙️ Tuercas</option>
+                <option value="Arandela">🔘 Arandelas</option>
+                <option value="Otro">📦 Otros</option>
+            </select>
+            <div id="adminTornilleriaContador" style="font-size:0.78rem;color:#64748b;font-weight:600;white-space:nowrap;">0 items</div>
+        </div>
+
+<div id="adminTornilleriaList" style="display:flex;flex-direction:column;gap:22px;">
+    <div class="empty-state">⏳ Cargando...</div>
+</div>
+
+        <div id="adminTornilleriaForm" style="display:none;margin-top:16px;background:var(--gray-50);padding:20px;border-radius:14px;border:2px solid var(--secondary);box-shadow:0 8px 24px rgba(45,116,218,0.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h4 style="margin:0;color:var(--primary);font-size:1rem;">✏️ <span id="adminTornilleriaFormTitulo">Editar Tornillería</span></h4>
+                <button onclick="cerrarFormTornilleria()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--gray-600);">✕</button>
+            </div>
+
+            <input type="hidden" id="adminTornilleriaId">
+
+            <div class="form-group">
+                <label>🏷️ Tipo *</label>
+                <div id="adminTornilleriaTipoPicker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px;">
+                    <label class="tipo-radio-torn" data-tipo="Tornillo" onclick="seleccionarTipoTornilleria('Tornillo')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.15s ease;">
+                        <span style="font-size:1.4rem;">🔩</span>
+                        <span>Tornillo</span>
+                    </label>
+                    <label class="tipo-radio-torn" data-tipo="Tuerca" onclick="seleccionarTipoTornilleria('Tuerca')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.15s ease;">
+                        <span style="font-size:1.4rem;">⚙️</span>
+                        <span>Tuerca</span>
+                    </label>
+                    <label class="tipo-radio-torn" data-tipo="Arandela" onclick="seleccionarTipoTornilleria('Arandela')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.15s ease;">
+                        <span style="font-size:1.4rem;">🔘</span>
+                        <span>Arandela</span>
+                    </label>
+                    <label class="tipo-radio-torn" data-tipo="Otro" onclick="seleccionarTipoTornilleria('Otro')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:2px solid #cbd5e1;border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.15s ease;">
+                        <span style="font-size:1.4rem;">📦</span>
+                        <span>Otro</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-row" style="margin-top:14px;">
+                <div class="form-group">
+                    <label>📝 Nombre *</label>
+                    <input type="text" id="adminTornilleriaNombre" placeholder="Ej: M12x35" maxlength="40" oninput="actualizarPreviewTornilleria()">
+                </div>
+                <div class="form-group">
+                    <label>🔢 Código / Referencia</label>
+                    <input type="text" id="adminTornilleriaCodigo" placeholder="Ej: 3EH-6282726-0003R" maxlength="40" oninput="actualizarPreviewTornilleria()">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>📍 Ubicación</label>
+                <input type="text" id="adminTornilleriaUbicacion" placeholder="Ej: A2" maxlength="30" oninput="actualizarPreviewTornilleria()">
+            </div>
+
+            <div style="background:white;border-radius:10px;padding:14px;margin-top:14px;border:1px dashed #cbd5e1;">
+                <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;margin-bottom:8px;">👁️ Vista previa</div>
+                <div id="adminTornilleriaPreview" style="display:flex;align-items:center;gap:12px;"></div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn btn-success" onclick="guardarTornilleriaAdmin()" style="flex:1;">💾 Guardar</button>
+                <button class="btn btn-danger btn-sm" onclick="eliminarTornilleriaAdmin()" id="btnEliminarTornilleria" style="display:none;">🗑️ Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanelInspeccion" style="display:none;">
+    <div class="panel">
+        <h3>🔍 Inspección de Calderería</h3>
+        <p style="font-size:0.85rem;color:#64748b;margin-bottom:1rem;">
+            Selecciona una operación y marca los puntos de inspección.
+        </p>
+
+        <div style="margin-bottom:1rem;">
+            <label style="display:block;font-size:0.78rem;font-weight:700;color:#64748b;margin-bottom:4px;">📋 Operación a inspeccionar</label>
+            <select id="inspeccionOperacionSelect" onchange="cargarInspeccionOperacion()" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.9rem;font-family:inherit;font-weight:600;">
+                <option value="">— Selecciona una operación —</option>
+            </select>
+        </div>
+
+        <div id="inspeccionContenido">
+            <div class="empty-state">👆 Selecciona una operación para empezar</div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanelConfigEscaner" style="display:none;">
+    <div class="panel">
+        <h3>⚙️ Configuración del Escáner</h3>
+        <p style="font-size:0.85rem;color:#64748b;margin-bottom:1rem;">
+            Define cómo se procesan los códigos escaneados.
+        </p>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:1rem;">
+
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:14px;background:white;border:2px solid #cbd5e1;border-radius:10px;transition:all 0.15s ease;" id="escSoloNumerosLabel">
+                <input type="checkbox" id="escSoloNumeros" onchange="marcarConfigEscanerCambiada()" style="width:20px;height:20px;cursor:pointer;">
+                <div style="flex:1;">
+                    <div style="font-weight:700;color:#1e293b;font-size:0.9rem;">🔢 Solo números</div>
+                    <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Elimina letras y símbolos</div>
+                </div>
+            </label>
+
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:14px;background:white;border:2px solid #cbd5e1;border-radius:10px;transition:all 0.15s ease;" id="escQuitarEspaciosLabel">
+                <input type="checkbox" id="escQuitarEspacios" onchange="marcarConfigEscanerCambiada()" style="width:20px;height:20px;cursor:pointer;">
+                <div style="flex:1;">
+                    <div style="font-weight:700;color:#1e293b;font-size:0.9rem;">⌴ Quitar espacios</div>
+                    <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Elimina espacios en blanco</div>
+                </div>
+            </label>
+
+<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:14px;background:white;border:2px solid #cbd5e1;border-radius:10px;transition:all 0.15s ease;" id="escCortarHashLabel">
+    <input type="checkbox" id="escCortarHash" onchange="marcarConfigEscanerCambiada()" style="width:20px;height:20px;cursor:pointer;">
+    <div style="flex:1;">
+        <div style="font-weight:700;color:#1e293b;font-size:0.9rem;"># Cortar antes de #</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Usa solo lo que viene DESPUÉS de #</div>
+    </div>
+</label>
+
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:14px;background:white;border:2px solid #cbd5e1;border-radius:10px;transition:all 0.15s ease;" id="escQuitarComillasLabel">
+                <input type="checkbox" id="escQuitarComillas" onchange="marcarConfigEscanerCambiada()" style="width:20px;height:20px;cursor:pointer;">
+                <div style="flex:1;">
+                    <div style="font-weight:700;color:#1e293b;font-size:0.9rem;">" Quitar comillas</div>
+                    <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Elimina " y '</div>
+                </div>
+            </label>
+
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:14px;background:white;border:2px solid #cbd5e1;border-radius:10px;transition:all 0.15s ease;" id="escQuitarGuionesLabel">
+                <input type="checkbox" id="escQuitarGuiones" onchange="marcarConfigEscanerCambiada()" style="width:20px;height:20px;cursor:pointer;">
+                <div style="flex:1;">
+                    <div style="font-weight:700;color:#1e293b;font-size:0.9rem;">- Quitar guiones</div>
+                    <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Elimina - y _</div>
+                </div>
+            </label>
+
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:14px;background:white;border:2px solid #cbd5e1;border-radius:10px;transition:all 0.15s ease;" id="escMayusculasLabel">
+                <input type="checkbox" id="escMayusculas" onchange="marcarConfigEscanerCambiada()" style="width:20px;height:20px;cursor:pointer;">
+                <div style="flex:1;">
+                    <div style="font-weight:700;color:#1e293b;font-size:0.9rem;">ABC Mayúsculas</div>
+                    <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Convierte todo a MAYÚSCULAS</div>
+                </div>
+            </label>
+<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:14px;background:white;border:2px solid #cbd5e1;border-radius:10px;transition:all 0.15s ease;" id="escConservarGuionLabel">
+    <input type="checkbox" id="escConservarGuion" onchange="marcarConfigEscanerCambiada()" style="width:20px;height:20px;cursor:pointer;">
+    <div style="flex:1;">
+        <div style="font-weight:700;color:#1e293b;font-size:0.9rem;">🔒 Conservar si tiene guion</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Si contiene "-" se guarda tal cual sin procesar</div>
+    </div>
+</label>
+        </div>
+
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:1rem;">
+            <label style="display:block;font-size:0.85rem;font-weight:700;color:#1e293b;margin-bottom:6px;">
+                🏷️ Prefijos a eliminar
+            </label>
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <input type="text" id="escNuevoPrefijo" placeholder="Ej: BDM" maxlength="20" style="flex:1;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:0.85rem;font-family:inherit;" onkeydown="if(event.key==='Enter'){event.preventDefault();añadirPrefijoEscaner();}">
+                <button type="button" onclick="añadirPrefijoEscaner()" class="btn btn-primary btn-sm" style="padding:8px 14px;">➕ Añadir</button>
+            </div>
+            <div id="escListaPrefijos" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        </div>
+
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:1rem;">
+            <label style="display:block;font-size:0.85rem;font-weight:700;color:#1e293b;margin-bottom:6px;">
+                📏 Longitud fija del código
+            </label>
+            <input type="number" id="escLongitud" min="0" max="100" placeholder="0 = sin límite" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:0.85rem;font-family:inherit;" onchange="marcarConfigEscanerCambiada()">
+            <small style="color:#64748b;font-size:0.72rem;">Corta el código a esta longitud. 0 = sin límite.</small>
+        </div>
+
+        <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:14px;margin-bottom:1rem;">
+            <div style="font-size:0.75rem;color:#4338ca;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;margin-bottom:8px;">
+                👁️ Prueba de procesado
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <input type="text" id="escPruebaCodigo" placeholder="Pega un código de prueba aquí..." style="flex:1;min-width:180px;padding:8px 12px;border:1px solid #c7d2fe;border-radius:8px;font-size:0.85rem;font-family:inherit;" oninput="probarConfigEscaner()">
+            </div>
+            <div id="escPruebaResultado" style="padding:10px 12px;background:white;border-radius:8px;font-family:'SF Mono',Monaco,monospace;font-size:0.85rem;color:#1e293b;border:1px solid #c7d2fe;min-height:38px;">
+                Esperando código...
+            </div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-success" onclick="guardarConfigEscaner()" style="flex:1;min-width:150px;padding:12px;">💾 Guardar configuración</button>
+            <button class="btn btn-outline" onclick="resetearConfigEscaner()" style="padding:12px 20px;">↺ Restaurar por defecto</button>
+        </div>
+
+        <div id="escEstadoGuardado" style="margin-top:10px;font-size:0.78rem;font-weight:700;text-align:center;"></div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanelRegistros" style="display:none;">
+    <div class="panel">
+        <h3>📋 Registros de Materiales</h3>
+        <p style="font-size:0.85rem;color:#64748b;margin-bottom:1rem;">
+            Todos los registros de resistencias y componentes escaneados.
+        </p>
+
+        <div style="display:flex;gap:8px;margin-bottom:1rem;border-bottom:2px solid #e5e7eb;flex-wrap:wrap;">
+            <button id="regTabResistencias" onclick="cambiarTabRegistros('resistencias')" style="padding:10px 18px;background:none;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;color:#b45309;border-bottom:3px solid #f59e0b;margin-bottom:-2px;font-family:inherit;">
+                ⚡ Resistencias
+            </button>
+            <button id="regTabEscaneos" onclick="cambiarTabRegistros('escaneos')" style="padding:10px 18px;background:none;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;color:#64748b;border-bottom:3px solid transparent;margin-bottom:-2px;font-family:inherit;">
+                📷 Componentes escaneados
+            </button>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+            <div style="flex:1;min-width:150px;">
+                <input type="text" id="regBusquedaGeneral" placeholder="🔍 Buscar por montaje, operario, lote o serie..." oninput="cambiarTabRegistros(window.APP._regTabActual || 'resistencias')" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+            </div>
+            <select id="regFiltroOperario" onchange="cambiarTabRegistros(window.APP._regTabActual || 'resistencias')" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todos">👤 Todos</option>
+            </select>
+            <select id="regFiltroFecha" onchange="cambiarTabRegistros(window.APP._regTabActual || 'resistencias')" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todo">📅 Todo</option>
+                <option value="hoy">📅 Hoy</option>
+                <option value="semana">📅 7 días</option>
+                <option value="mes">📅 30 días</option>
+            </select>
+            <div id="regContador" style="font-size:0.78rem;color:#64748b;font-weight:600;white-space:nowrap;">0 registros</div>
+        </div>
+
+        <div id="regListaContenido" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="empty-state">⏳ Cargando...</div>
+        </div>
+    </div>
+</div>
+<div class="admin-panel" id="adminPanelTqc" style="display:none;">
+    <div class="panel">
+        <h3>🔍 Control de Calidad (TQC)</h3>
+        <p style="font-size:0.85rem;color:#64748b;margin-bottom:1rem;">
+            Revisa las estaciones completadas y aprueba o rechaza los montajes.
+        </p>
+
+        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
+            <select id="tqcFiltroEstado" onchange="cargarTQC()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="pendiente">⏳ Pendientes</option>
+                <option value="parcial">🔄 Parcialmente rechazadas</option>
+                <option value="aprobado">✅ Aprobadas</option>
+                <option value="todas">📋 Todas</option>
+            </select>
+            <select id="tqcFiltroOperacion" onchange="cargarTQC()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+                <option value="todas">Todas las operaciones</option>
+            </select>
+            <div id="tqcContador" style="margin-left:auto;font-size:0.78rem;color:#64748b;font-weight:600;">0 estaciones</div>
+        </div>
+
+        <div id="tqcListaEstaciones" style="display:flex;flex-direction:column;gap:10px;">
+            <div class="empty-state">⏳ Cargando...</div>
+        </div>
+    </div>
+</div>
+
+        </div>
+
+    </main>
+</div>
+
+<button class="chat-fab" id="chatFab" onclick="event.stopPropagation(); togglePanelChatFlotante();" title="Abrir chat">
+    <i class="fas fa-comments"></i>
+</button>
+
+<div id="panelChatFlotante" style="
+    display:none;
+    position:fixed;
+    bottom:90px;
+    right:20px;
+    width:380px;
+    max-width:calc(100vw - 40px);
+    height:560px;
+    max-height:calc(100vh - 120px);
+    background:white;
+    border-radius:16px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.05);
+    z-index:9500;
+    overflow:hidden;
+    flex-direction:column;
+    animation:slideUpPanel 0.25s ease-out;
+">
+    <div style="
+        background:linear-gradient(135deg,#2d74da,#1a365d);
+        color:white;
+        padding:12px 16px;
+        display:flex;
+        align-items:center;
+        gap:10px;
+        flex-shrink:0;
+        min-height:56px;
+    ">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;" id="panelChatCabecera">
+            <span style="font-size:1.2rem;">💬</span>
+            <span style="font-weight:700;font-size:0.9rem;">Chat</span>
+        </div>
+        <button onclick="cerrarPanelChatFlotante()" style="
+            background:rgba(255,255,255,0.2);
+            border:none;
+            color:white;
+            width:32px;height:32px;
+            border-radius:8px;
+            font-size:1rem;
+            cursor:pointer;
+            display:flex;align-items:center;justify-content:center;
+            flex-shrink:0;
+        ">✕</button>
+    </div>
+
+    <div id="panelChatContenido" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;">
+    </div>
+</div>
+
+<div class="crono-badge" id="cronoBadgeFlotante" onclick="toggleBadgeCrono()" title="Pulsa para cambiar entre tiempo total y tiempo del montaje">
+    <span id="cronoBadgeIcono">⏱️</span>
+    <span id="cronoBadgeTiempo">0.00h</span>
+    <span id="cronoBadgeMontaje">-</span>
+    <span id="cronoBadgeOperarios" style="font-size:0.7rem;opacity:0.85;"></span>
+</div>
+
+<div class="crono-badge-ir" id="cronoBadgeIr" onclick="irAlMontajePropio()" title="Ir al montaje que tengo activo" style="display:none;">
+    <span>🎯</span>
+    <span>Ir al montaje</span>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script src="js/01-config-estado.js?v=2"></script>
+<script src="js/02-firebase.js?v=2"></script>
+<script src="js/03-utilidades.js?v=2"></script>
+<script src="js/04-idgen.js?v=2"></script>
+<script src="js/05-auth.js?v=2"></script>
+<script src="js/06-navegacion.js?v=2"></script>
+<script src="js/07-listeners.js?v=2"></script>
+<script src="js/08-modales.js?v=2"></script>
+<script src="js/09-operaciones.js?v=2"></script>
+<script src="js/10-montajes.js?v=2"></script>
+<script src="js/11-estaciones.js?v=2"></script>
+<script src="js/12-cronometro.js?v=2"></script>
+<script src="js/13-badge-cronometro.js?v=2"></script>
+<script src="js/14-terminar-montaje.js?v=2"></script>
+<script src="js/15-dashboard.js?v=2"></script>
+<script src="js/16-operario-kanban.js?v=2"></script>
+<script src="js/17-operario-materiales.js?v=2"></script>
+<script src="js/18-operario-verificar-materiales.js?v=2"></script>
+<script src="js/19-operario-herramientas.js?v=2"></script>
+<script src="js/20-resistencias.js?v=2"></script>
+<script src="js/21-escaner-operario.js?v=2"></script>
+<script src="js/22-chat.js?v=2"></script>
+<script src="js/23-chat-panel.js?v=2"></script>
+<script src="js/24-notificaciones.js?v=2"></script>
+<script src="js/25-inspeccion.js?v=2"></script>
+<script src="js/30-admin-operarios.js?v=2"></script>
+<script src="js/31-admin-estaciones.js?v=2"></script>
+<script src="js/32-admin-operaciones.js?v=2"></script>
+<script src="js/33-admin-materiales.js?v=2"></script>
+<script src="js/34-admin-montajes.js?v=2"></script>
+<script src="js/35-admin-montajes-recursos.js?v=2"></script>
+<script src="js/36-admin-tornilleria.js?v=2"></script>
+<script src="js/37-admin-herramientas.js?v=2"></script>
+<script src="js/38-admin-piezas-kanban.js?v=2"></script>
+<script src="js/39-admin-movimientos-kanban.js?v=2"></script>
+<script src="js/40-alertas-kanban.js?v=2"></script>
+<script src="js/41-admin-entregas.js?v=2"></script>
+<script src="js/42-alertas-admin.js?v=2"></script>
+<script src="js/43-admin-registros.js?v=2"></script>
+<script src="js/44-admin-tqc.js?v=2"></script>
+<script src="js/45-admin-escaner-config.js?v=2"></script>
+<script src="js/46-pwa.js?v=1"></script>
+  <script src="js/90-exports.js?v=2"></script>
+<script src="js/99-init.js?v=2"></script>
+</body>
+</html>
