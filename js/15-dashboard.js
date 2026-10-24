@@ -87,7 +87,45 @@ async function actualizarDashboard() {
         else elTiempo.style.color = '#f97316';
     }
 
+    mostrarResumenTQCDashboard(idsMontajesFiltrados, montajes, historial, cronoOp, operacionId, tiempoRestanteSeg);
+
     cargarHistorialReciente();
+}
+
+function mostrarResumenTQCDashboard(idsFiltrados, montajes, historial, cronoOp, operacionId, tiempoRestanteSeg) {
+    const elTiempo = document.getElementById('dashTiempoRestante');
+    if (!elTiempo) return;
+
+    let el = document.getElementById('dashTiempoTQC');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'dashTiempoTQC';
+        el.style.cssText = 'font-size:0.68rem;font-weight:700;margin-top:6px;line-height:1.4;opacity:0.9;';
+        elTiempo.parentElement.appendChild(el);
+    }
+
+    const completadosIds = new Set(
+        Object.values(historial)
+            .filter(h => h.completado && h.operacionId === operacionId)
+            .map(h => h.montajeId)
+    );
+    Object.entries(cronoOp?.montajesActivos || {}).forEach(([mid, a]) => {
+        if (a.completado) completadosIds.add(mid);
+    });
+
+    const entradas = [...idsFiltrados].map(mid => [mid, montajes[mid]]);
+    const tqc = resumenTiempoTQC(entradas, completadosIds, cronoOp);
+
+    if (tqc.total === 0) {
+        el.style.display = 'none';
+        return;
+    }
+    el.style.display = 'block';
+    if (tqc.pendientes === 0) {
+        el.textContent = `✅ TQC completados (${tqc.total}/${tqc.total})`;
+        return;
+    }
+    el.innerHTML = `Producción: ${formatearHorasConSigno(tiempoRestanteSeg - tqc.pendienteSeg)}<br>🔍 TQC: ${segundosAHorasDecimales(tqc.pendienteSeg)} (${tqc.pendientes} pend.)`;
 }
 
 function filtrarPorFecha(fechaISO, filtro) {
@@ -291,4 +329,6 @@ async function actualizarTiempoRestanteDashboard() {
         if (pctRestante > 25) elTiempo.style.color = '#10b981';
         else elTiempo.style.color = '#f97316';
     }
+
+    mostrarResumenTQCDashboard(idsFiltrados, montajes, historial, cronoOp, operacionId, tiempoRestanteSeg);
 }

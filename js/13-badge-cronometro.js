@@ -15,6 +15,26 @@ function toggleBadgeCrono() {
     actualizarBadgeCrono();
 }
 
+function formatearHorasConSigno(seg) {
+    return (seg < 0 ? '-' : '') + segundosAHorasDecimales(seg);
+}
+
+function resumenTiempoTQC(entradas, completadosIds, cronoOp) {
+    const r = { total: 0, pendientes: 0, totalSeg: 0, pendienteSeg: 0 };
+    for (const [mid, m] of entradas) {
+        if (!m || !m.esTQC) continue;
+        const seg = Math.round((parseFloat(m.tiempoHoras) || 0) * 3600);
+        r.total++;
+        r.totalSeg += seg;
+        if (completadosIds.has(mid)) continue;
+        r.pendientes++;
+        const activo = cronoOp?.montajesActivos?.[mid];
+        const consumido = activo && !activo.completado ? calcularConsumoMontaje(activo) : 0;
+        r.pendienteSeg += Math.max(0, seg - consumido);
+    }
+    return r;
+}
+
 async function calcularTotalOperacion(operacionId) {
     const [montajes, operaciones, cronos] = await Promise.all([
         cargarFirebase('montajes'),
@@ -23,7 +43,7 @@ async function calcularTotalOperacion(operacionId) {
     ]);
 
     const op = operaciones[operacionId];
-    if (!op) return { total: 0, consumido: 0, restante: 0 };
+    if (!op) return { total: 0, consumido: 0, restante: 0, tqc: { total: 0, pendientes: 0, totalSeg: 0, pendienteSeg: 0 } };
 
     const modelo = op.modelo || 'MS3';
     const montajesModelo = Object.values(montajes).filter(m => m.modelo === modelo);
@@ -39,10 +59,17 @@ async function calcularTotalOperacion(operacionId) {
         consumidoSeg += calcularConsumoMontaje(mActivo);
     }
 
+    const completadosIds = new Set(
+        Object.entries(cronoOp.montajesActivos || {}).filter(([, a]) => a.completado).map(([mid]) => mid)
+    );
+    const entradasModelo = Object.entries(montajes).filter(([, m]) => m.modelo === modelo);
+    const tqc = resumenTiempoTQC(entradasModelo, completadosIds, cronoOp);
+
     return {
         total: totalSeg,
         consumido: consumidoSeg,
-        restante: totalSeg - consumidoSeg
+        restante: totalSeg - consumidoSeg,
+        tqc
     };
 }
 
@@ -108,11 +135,17 @@ async function actualizarBadgeCrono() {
 
         const op = (await cargarFirebase('operaciones'))[operacionId];
         document.getElementById('cronoBadgeMontaje').textContent = op ? 'Op. ' + (op.numero || '') : 'Operación';
-        document.getElementById('cronoBadgeOperarios').textContent = operariosUnicos.size > 0 ? '👥 ' + operariosUnicos.size : '';
+        const partesBadge = [];
+        if (operariosUnicos.size > 0) partesBadge.push('👥 ' + operariosUnicos.size);
+        if (datos.tqc.pendientes > 0) partesBadge.push('🔍 ' + segundosAHorasDecimales(datos.tqc.pendienteSeg));
+        document.getElementById('cronoBadgeOperarios').textContent = partesBadge.join(' · ');
 
-        badge.title = miMontajeActivo
+        const textoTQC = datos.tqc.pendientes > 0
+            ? ` · Incluye ${segundosAHorasDecimales(datos.tqc.pendienteSeg)} de TQC pendiente (${datos.tqc.pendientes})`
+            : '';
+        badge.title = (miMontajeActivo
             ? 'Tiempo total de la operación · Pulsa para ver tu montaje'
-            : 'Tiempo total de la operación';
+            : 'Tiempo total de la operación') + textoTQC;
 
     } else {
         const montajes = await cargarFirebase('montajes');
