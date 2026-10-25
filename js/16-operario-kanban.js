@@ -57,8 +57,7 @@ let html = `
                 style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
         </div>
 
-        <div id="kanbanListaPiezas" style="display:flex;flex-direction:column;gap:8px;">
-    `;
+<div id="kanbanListaPiezas" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px;align-items:start;">    `;
 
     arr.forEach(([id, p]) => {
         const stock = p.stockActual || 0;
