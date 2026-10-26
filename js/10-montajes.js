@@ -1,13 +1,16 @@
-const BLOQUEAR_MONTAJE_SI_DEPENDE = false;
-
 function resolverDependeDe(m, montajes) {
     if (m.dependeDeId && montajes[m.dependeDeId]) return m.dependeDeId;
     const texto = (m.dependeDe || '').trim().toLowerCase();
     if (!texto) return null;
-    const hallado = Object.entries(montajes).find(([id, x]) =>
-        x.modelo === m.modelo && (x.nombre || '').trim().toLowerCase() === texto
-    );
-    return hallado ? hallado[0] : null;
+
+    const mismoModelo = Object.entries(montajes).filter(([, x]) => x.modelo === m.modelo);
+    const exacto = mismoModelo.find(([, x]) => (x.nombre || '').trim().toLowerCase() === texto);
+    if (exacto) return exacto[0];
+
+    const escapado = texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const patron = new RegExp('(^|[^a-z0-9áéíóúñ])' + escapado + '($|[^a-z0-9áéíóúñ])');
+    const parecidos = mismoModelo.filter(([, x]) => patron.test((x.nombre || '').toLowerCase()));
+    return parecidos.length === 1 ? parecidos[0][0] : null;
 }
 
 async function montajeEsperaPredecesor(montajeId, operacionId) {
@@ -17,12 +20,21 @@ async function montajeEsperaPredecesor(montajeId, operacionId) {
     ]);
     const m = montajes[montajeId];
     if (!m) return null;
+
     const dependeId = resolverDependeDe(m, montajes);
     if (!dependeId) return null;
+
     const terminado = Object.values(historial).some(h =>
         h.completado && h.operacionId === operacionId && h.montajeId === dependeId
     );
-    return terminado ? null : (montajes[dependeId].nombre || 'otro montaje');
+    if (terminado) return null;
+
+    const crono = await cargarCronoOperacion(operacionId);
+    const mActivo = crono?.montajesActivos?.[montajeId];
+    const conActividad = mActivo && ((mActivo.operariosActivos || []).length > 0 || (mActivo.tiempoConsumidoSeg || 0) > 0);
+    if (conActividad) return null;
+
+    return montajes[dependeId].nombre || 'otro montaje';
 }
 
 function iniciarListenerAvisosMontajes() {
@@ -322,11 +334,28 @@ function renderTarjetaMontaje(mid, m, color, completadosIds, historial, operacio
     }
 
     if (!estaCompletado && m._dependeId && !completadosIds.has(m._dependeId)) {
-        estadoHtml += `
-            <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;background:#fffbeb;color:#92400e;border:1px solid #fde68a;border-radius:99px;padding:2px 10px;font-size:0.72rem;font-weight:700;">
-                ⏳ Espera a: ${m._dependeNombre}
-            </div>
-        `;
+        const cronoDep = window.APP.cronosOperacion?.[operacionId];
+        const actividadDep = cronoDep?.montajesActivos?.[mid];
+        const conActividad = actividadDep && ((actividadDep.operariosActivos || []).length > 0 || (actividadDep.tiempoConsumidoSeg || 0) > 0);
+        if (!conActividad) {
+            return `
+                <div id="card_${mid}" title="Bloqueado hasta terminar: ${m._dependeNombre}"
+                    style="background:#f1f5f9;border:1px dashed #cbd5e1;border-left:3px solid #94a3b8;border-radius:10px;padding:0.9rem 1rem;opacity:0.9;cursor:not-allowed;user-select:none;">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <span style="font-size:1.4rem;flex-shrink:0;filter:grayscale(1);">🔒</span>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:600;font-size:0.9rem;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                ${m.orden || ''}. ${m.nombre || 'Sin nombre'}
+                            </div>
+                            <div style="font-size:0.75rem;color:#b45309;font-weight:700;margin-top:3px;line-height:1.35;">
+                                Requiere terminar primero: "${m._dependeNombre}"
+                            </div>
+                        </div>
+                        <div style="font-size:0.85rem;font-weight:700;color:#94a3b8;flex-shrink:0;">${horas.toFixed(2)}h</div>
+                    </div>
+                </div>
+            `;
+        }
     }
 
     return `
@@ -524,6 +553,14 @@ async function mostrarDetalleMontaje(montajeId) {
     const montajes = await cargarFirebase('montajes');
     const m = montajes[montajeId];
     if (!m) return;
+
+    if (window.APP.operacionActiva) {
+        const espera = await montajeEsperaPredecesor(montajeId, window.APP.operacionActiva);
+        if (espera) {
+            alertar(`🔒 Requiere terminar primero: "${espera}"`, { tipo: 'warning' });
+            return;
+        }
+    }
 
     const [piezasKanban, catalogoMateriales, catalogoTornilleria] = await Promise.all([
     cargarFirebase('piezas_kanban'),
@@ -1044,12 +1081,10 @@ async function iniciarMontaje(montajeId) {
             return;
         }
 
-        if (BLOQUEAR_MONTAJE_SI_DEPENDE) {
-            const espera = await montajeEsperaPredecesor(montajeId, operacionId);
-            if (espera) {
-                alertar(`Antes debe terminar el montaje "${espera}".`, { tipo: 'warning' });
-                return;
-            }
+        const espera = await montajeEsperaPredecesor(montajeId, operacionId);
+        if (espera) {
+            alertar(`🔒 Requiere terminar primero: "${espera}"`, { tipo: 'warning' });
+            return;
         }
 
         const crono = await cargarCronoOperacion(operacionId);
