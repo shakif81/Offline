@@ -161,7 +161,6 @@ function renderModalEscaner() {
     const total = slots.length;
     const todoOk = hechos === total;
 
-    // Agrupar por material
     const porMaterial = {};
     slots.forEach((slot, idx) => {
         if (!porMaterial[slot.materialId]) {
@@ -197,7 +196,7 @@ function renderModalEscaner() {
             <button onclick="cerrarModalEscaner()" style="background:#f1f5f9;border:none;border-radius:10px;width:44px;height:44px;font-size:1.3rem;cursor:pointer;color:#475569;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
         </div>
 
-        <!-- BARRA DE PROGRESO (Estilo Sub-cabecera) -->
+        <!-- BARRA DE PROGRESO -->
         <div style="padding:12px 20px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
             <div style="display:flex;justify-content:space-between;font-size:0.75rem;font-weight:700;color:#4338ca;margin-bottom:6px;">
                 <span>Progreso de escaneo</span>
@@ -208,20 +207,16 @@ function renderModalEscaner() {
             </div>
         </div>
 
-        <!-- CONTENIDO (Fondo gris claro, tarjetas blancas) -->
+        <!-- CONTENIDO -->
         <div style="flex:1;overflow-y:auto;padding:1.5rem;background:#fafafa;">
             <div style="max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:16px;">
                 ${Object.values(porMaterial).map(grupo => `
                     <div style="background:white;border-radius:14px;padding:1.2rem 1.4rem;border:1px solid #e5e7eb;border-left:4px solid #6366f1;">
-                        
-                        <!-- CABECERA DEL GRUPO -->
                         <div style="font-weight:700;font-size:0.95rem;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
                             <span>📦</span>
                             <span>${grupo.materialNombre}</span>
-                            <span style="font-size:0.75rem;color:#64748b;font-weight:500;background:#f1f5f9;padding:2px 8px;border-radius:99px;">${grupo.slots.length} unidad${grupo.slots.length > 1 ? 'es' : ''}</span>
+                            <span style="font-size:0.72rem;color:#64748b;font-weight:500;background:#f1f5f9;padding:2px 8px;border-radius:99px;">${grupo.slots.length} unidad${grupo.slots.length > 1 ? 'es' : ''}</span>
                         </div>
-                        
-                        <!-- LISTA DE SLOTS -->
                         <div style="display:flex;flex-direction:column;gap:8px;">
                         ${grupo.slots.map(slot => {
                             const tieneCodigo = !!slot.codigoEscaneado;
@@ -234,7 +229,6 @@ function renderModalEscaner() {
                                     border-radius:10px;
                                     padding:12px 14px;
                                 ">
-                                    <!-- FILA 1: Nº + estado + botones -->
                                     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                                         <span style="
                                             background:${tieneCodigo ? '#10b981' : (esElSiguiente ? '#6366f1' : '#94a3b8')};
@@ -278,7 +272,6 @@ function renderModalEscaner() {
                                     </div>
 
                                     ${tieneCodigo ? `
-                                        <!-- FILA 2: Nº Serie + Revisión -->
                                         <div style="display:grid;grid-template-columns:1fr 100px;gap:10px;margin-top:12px;">
                                             <input type="text" value="${slot.codigoEscaneado || ''}"
                                                 oninput="cambiarCodigoSlot(${slot.idx}, this.value)"
