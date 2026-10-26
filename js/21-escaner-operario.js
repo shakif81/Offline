@@ -195,6 +195,28 @@ function renderModalEscaner() {
             </div>
             <button onclick="cerrarModalEscaner()" style="background:#f1f5f9;border:none;border-radius:10px;width:44px;height:44px;font-size:1.3rem;cursor:pointer;color:#475569;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
         </div>
+        
+        
+         <!-- REVISIÓN GLOBAL -->
+${hechos > 0 ? `
+<div style="padding:12px 20px;background:#fffbeb;border-bottom:1px solid #fde68a;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;max-width:900px;margin:0 auto;">
+        <span style="font-size:0.8rem;font-weight:700;color:#b45309;flex-shrink:0;">
+            📝 Revisión global:
+        </span>
+        <input type="text" id="escanerRevGlobal" placeholder="Ej: A, R1..." maxlength="20"
+            style="flex:1;min-width:120px;max-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #fcd34d;font-size:0.85rem;font-family:inherit;background:white;text-align:center;font-weight:700;"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarRevisionGlobalEscaner();}">
+        <button onclick="aplicarRevisionGlobalEscaner()" style="
+            padding:8px 16px;border:none;border-radius:8px;
+            background:#f59e0b;color:white;font-weight:700;font-size:0.8rem;
+            cursor:pointer;font-family:inherit;white-space:nowrap;
+        ">
+            ✅ Aplicar a escaneados
+        </button>
+    </div>
+</div>
+` : ''}
 
         <!-- BARRA DE PROGRESO -->
         <div style="padding:12px 20px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
@@ -689,4 +711,35 @@ function cambiarRevisionSlot(idx, valor) {
     if (!ctx || !ctx.slots[idx]) return;
 
     ctx.slots[idx].revision = valor;
+}
+function aplicarRevisionGlobalEscaner() {
+    const ctx = window.APP._escanerActual;
+    if (!ctx || !ctx.slots) return;
+
+    const input = document.getElementById('escanerRevGlobal');
+    const revision = input?.value.trim() || '';
+
+    if (!revision) {
+        toast('⚠️ Escribe la revisión primero', '#f59e0b');
+        return;
+    }
+
+    let aplicados = 0;
+    ctx.slots.forEach(slot => {
+        // Solo aplicar a los que ya tienen un código escaneado
+        if (slot.codigoEscaneado) {
+            slot.revision = revision;
+            aplicados++;
+        }
+    });
+
+    if (aplicados === 0) {
+        toast('⚠️ No hay componentes escaneados todavía', '#f59e0b');
+        return;
+    }
+
+    toast(`✅ Revisión "${revision}" aplicada a ${aplicados} componente${aplicados > 1 ? 's' : ''}`, '#10b981');
+    
+    // Refrescar la vista
+    renderModalEscaner();
 }
