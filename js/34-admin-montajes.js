@@ -105,6 +105,15 @@ async function cargarAdminMontajes() {
                     📍 ${est?.nombre || 'Estación desconocida'} · ⏱️ ${mon.tiempoHoras || 0}h${mon.esTQC ? ' · 🔍 TQC' : ''}${mon.operarioAsignado === 'operario1' ? ' · 👷 Operario 1' : mon.operarioAsignado === 'operario2' ? ' · 👷 Operario 2' : ''}
                 </div>
 
+                ${(() => {
+                    const textoDep = (mon.dependeDe || '').trim();
+                    if (!mon.dependeDeId && !textoDep) return '';
+                    const depId = typeof resolverDependeDe === 'function' ? resolverDependeDe(mon, montajes) : null;
+                    return depId
+                        ? `<div style="font-size:0.72rem;color:#92400e;font-weight:700;margin-bottom:8px;">🔒 Depende de: ${montajes[depId].nombre}</div>`
+                        : `<div style="font-size:0.72rem;color:#b91c1c;font-weight:700;margin-bottom:8px;line-height:1.35;">⚠️ Dependencia sin resolver: «${textoDep || mon.dependeDeId}». Edítalo y elige el montaje en la lista.</div>`;
+                })()}
+
                 <div style="display:flex;gap:6px;padding-top:10px;border-top:1px solid #f1f5f9;flex-wrap:wrap;">
                     ${numTorn > 0 ? `<span style="font-size:0.68rem;color:#8b5cf6;font-weight:700;">🔩 ${numTorn}</span>` : ''}
                     ${numMat > 0 ? `<span style="font-size:0.68rem;color:#f97316;font-weight:700;">🧪 ${numMat}</span>` : ''}

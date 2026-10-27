@@ -7,6 +7,9 @@ function resolverDependeDe(m, montajes) {
     const exacto = mismoModelo.find(([, x]) => (x.nombre || '').trim().toLowerCase() === texto);
     if (exacto) return exacto[0];
 
+    const porOrden = mismoModelo.filter(([, x]) => String(x.orden || '').trim() === texto);
+    if (porOrden.length === 1) return porOrden[0][0];
+
     const escapado = texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const patron = new RegExp('(^|[^a-z0-9áéíóúñ])' + escapado + '($|[^a-z0-9áéíóúñ])');
     const parecidos = mismoModelo.filter(([, x]) => patron.test((x.nombre || '').toLowerCase()));
