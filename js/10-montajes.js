@@ -122,7 +122,7 @@ function mostrarAvisoMontajeDisponible(terminado, disponibles, h) {
         <div style="font-size:0.78rem;color:#64748b;margin:10px 0 6px;">Ya puedes iniciar:</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
             ${disponibles.map(([mid, x]) => `
-                <button onclick="irAMontajeDisponible('${mid}')" style="text-align:left;padding:10px 12px;border:1px solid #bbf7d0;background:#f0fdf4;color:#166534;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;">▶ ${x.nombre || 'Montaje'}${etiquetaOperario(x.operarioAsignado)}</button>
+                <button onclick="irAMontajeDisponible('${mid}', '${h.operacionId}')" style="text-align:left;padding:10px 12px;border:1px solid #bbf7d0;background:#f0fdf4;color:#166534;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;">▶ ${x.nombre || 'Montaje'}${etiquetaOperario(x.operarioAsignado)}</button>
             `).join('')}
         </div>
     `;
@@ -140,31 +140,46 @@ function cerrarAvisoMontajeDisponible() {
 
 async function irAMontajeDisponible(montajeId) {
     cerrarAvisoMontajeDisponible();
+async function irAMontajeDisponible(montajeId, operacionId) {
+    cerrarAvisoMontajeDisponible();
     
-    const montajes = await cargarFirebase('montajes');
-    const m = montajes[montajeId];
-    if (!m) return;
-
-    // Comprobar si estamos en la operación correcta
-    const operacionId = window.APP.operacionActiva;
     if (!operacionId) {
-        // No hay operación activa → ir a la lista de operaciones
         showPage('operaciones');
-        toast('📋 Abre la operación y busca el montaje', '#3b82f6', 3500);
         return;
     }
 
-    // Si estamos en la operación, buscar la tarjeta
-    const tarjeta = document.getElementById('card_' + montajeId);
-    if (tarjeta) {
-        tarjeta.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        tarjeta.style.boxShadow = '0 0 0 3px #22c55e';
-        setTimeout(() => { tarjeta.style.boxShadow = ''; }, 2500);
+    // 1. Si no estamos en la operación correcta, la abrimos automáticamente
+    if (window.APP.operacionActiva !== operacionId) {
+        if (typeof seleccionarOperacion === 'function') {
+            await seleccionarOperacion(operacionId);
+            // Dar un pequeño respiro para que Firestore devuelva los datos y se pinte
+            await new Promise(r => setTimeout(r, 700)); 
+        } else {
+            showPage('operaciones');
+            return;
+        }
     } else {
-        // No está en esta operación → ir a operaciones
-        showPage('operaciones');
-        toast('📋 Abre la operación del montaje desbloqueado', '#3b82f6', 3500);
+        // Si ya estamos en la operación, nos aseguramos de estar en la vista de montajes
+        if (typeof showPage === 'function') {
+            showPage('montajes-operacion');
+        }
     }
+
+    // 2. Buscar la tarjeta y hacer scroll
+    // Usamos un setTimeout extra por si la vista de montajes aún se está pintando
+    setTimeout(() => {
+        const tarjeta = document.getElementById('card_' + montajeId);
+        if (tarjeta) {
+            tarjeta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            tarjeta.style.boxShadow = '0 0 0 3px #22c55e';
+            tarjeta.style.transition = 'all 0.3s ease';
+            setTimeout(() => { 
+                tarjeta.style.boxShadow = ''; 
+            }, 2500);
+        } else {
+            toast('📋 Abre la lista de montajes de la operación para iniciarlo', '#3b82f6', 3500);
+        }
+    }, 300);
 }
 
 async function cargarMontajesOperacionSilencioso(operacionId, modelo) {
