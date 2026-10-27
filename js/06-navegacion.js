@@ -215,7 +215,10 @@ if (tab === 'movimientosKanban') {
 if (tab === 'registroVerificaciones') cargarRegistroVerificaciones();
 if (tab === 'registroHerramientas') cargarRegistroHerramientas();
 if (tab === 'registros') cambiarTabRegistros('resistencias');
-if (tab === 'tqc') cargarTQC();
+if (tab === 'tqc') {
+    cargarTQC();
+    cargarSolicitudesEstanquidadAdmin();
+}
 if (tab === 'inspeccion') {
     iniciarInspeccion();
 }
