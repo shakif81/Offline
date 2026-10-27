@@ -117,6 +117,12 @@ setTimeout(() => {
             await actualizarBadgeNotificaciones();
         }
     }, 700);
+    
+setTimeout(() => {
+    if (typeof iniciarListenerAvisosMontajes === 'function') {
+        iniciarListenerAvisosMontajes();
+    }
+}, 800);
 }
 
 function accederSinOperario() {
