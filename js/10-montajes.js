@@ -59,10 +59,15 @@ function iniciarListenerAvisosMontajes() {
 }
 
 async function avisarMontajesDisponibles(h) {
-    if (!window.APP.operario || h.operacionId !== window.APP.operacionActiva) return;
+    if (!window.APP.operario) return;
+    
+    // Si el montaje lo terminó él mismo, no avisar
     if (h.operario && h.operario === window.APP.operario.nombre) return;
-    if (h.fecha && Date.now() - new Date(h.fecha).getTime() > 5 * 60 * 1000) return;
+    
+    // Solo avisos recientes (últimos 10 minutos)
+    if (h.fecha && Date.now() - new Date(h.fecha).getTime() > 10 * 60 * 1000) return;
 
+    // Evitar duplicados
     const clave = h.operacionId + '_' + h.montajeId;
     if (window.APP._avisosDepMostrados.has(clave)) return;
     window.APP._avisosDepMostrados.add(clave);
@@ -72,12 +77,15 @@ async function avisarMontajesDisponibles(h) {
         cargarFirebase('historial_montajes', true),
         cargarFirebase('operaciones')
     ]);
+    
     const terminado = montajes[h.montajeId];
     if (!terminado) return;
 
     const completados = new Set(
         Object.values(historial).filter(x => x.completado && x.operacionId === h.operacionId).map(x => x.montajeId)
     );
+    
+    // Buscar montajes que dependan del que se acaba de terminar
     const disponibles = Object.entries(montajes).filter(([mid, x]) =>
         x.modelo === terminado.modelo
         && resolverDependeDe(x, montajes) === h.montajeId
@@ -85,10 +93,13 @@ async function avisarMontajesDisponibles(h) {
     );
     if (!disponibles.length) return;
 
+    // Si el operario está viendo esa operación, refrescar la vista silenciosamente
     const modelo = operaciones[h.operacionId]?.modelo;
-    if (modelo && document.getElementById('montajesList')?.offsetParent) {
+    if (h.operacionId === window.APP.operacionActiva && modelo && document.getElementById('montajesList')?.offsetParent) {
         cargarMontajesOperacionSilencioso(h.operacionId, modelo);
     }
+
+    // Mostrar el aviso flotante
     mostrarAvisoMontajeDisponible(terminado, disponibles, h);
 }
 
@@ -127,16 +138,33 @@ function cerrarAvisoMontajeDisponible() {
     document.getElementById('avisoMontajeDisponible')?.remove();
 }
 
-function irAMontajeDisponible(montajeId) {
+async function irAMontajeDisponible(montajeId) {
     cerrarAvisoMontajeDisponible();
-    const tarjeta = document.getElementById('card_' + montajeId);
-    if (!tarjeta) {
-        toast('📋 Abre la lista de montajes de la operación para iniciarlo', '#3b82f6', 3500);
+    
+    const montajes = await cargarFirebase('montajes');
+    const m = montajes[montajeId];
+    if (!m) return;
+
+    // Comprobar si estamos en la operación correcta
+    const operacionId = window.APP.operacionActiva;
+    if (!operacionId) {
+        // No hay operación activa → ir a la lista de operaciones
+        showPage('operaciones');
+        toast('📋 Abre la operación y busca el montaje', '#3b82f6', 3500);
         return;
     }
-    tarjeta.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    tarjeta.style.boxShadow = '0 0 0 3px #22c55e';
-    setTimeout(() => { tarjeta.style.boxShadow = ''; }, 2500);
+
+    // Si estamos en la operación, buscar la tarjeta
+    const tarjeta = document.getElementById('card_' + montajeId);
+    if (tarjeta) {
+        tarjeta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        tarjeta.style.boxShadow = '0 0 0 3px #22c55e';
+        setTimeout(() => { tarjeta.style.boxShadow = ''; }, 2500);
+    } else {
+        // No está en esta operación → ir a operaciones
+        showPage('operaciones');
+        toast('📋 Abre la operación del montaje desbloqueado', '#3b82f6', 3500);
+    }
 }
 
 async function cargarMontajesOperacionSilencioso(operacionId, modelo) {
