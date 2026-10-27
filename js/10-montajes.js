@@ -61,13 +61,9 @@ function iniciarListenerAvisosMontajes() {
 async function avisarMontajesDisponibles(h) {
     if (!window.APP.operario) return;
     
-    // Si el montaje lo terminó él mismo, no avisar
     if (h.operario && h.operario === window.APP.operario.nombre) return;
-    
-    // Solo avisos recientes (últimos 10 minutos)
     if (h.fecha && Date.now() - new Date(h.fecha).getTime() > 10 * 60 * 1000) return;
 
-    // Evitar duplicados
     const clave = h.operacionId + '_' + h.montajeId;
     if (window.APP._avisosDepMostrados.has(clave)) return;
     window.APP._avisosDepMostrados.add(clave);
@@ -85,7 +81,6 @@ async function avisarMontajesDisponibles(h) {
         Object.values(historial).filter(x => x.completado && x.operacionId === h.operacionId).map(x => x.montajeId)
     );
     
-    // Buscar montajes que dependan del que se acaba de terminar
     const disponibles = Object.entries(montajes).filter(([mid, x]) =>
         x.modelo === terminado.modelo
         && resolverDependeDe(x, montajes) === h.montajeId
@@ -93,13 +88,11 @@ async function avisarMontajesDisponibles(h) {
     );
     if (!disponibles.length) return;
 
-    // Si el operario está viendo esa operación, refrescar la vista silenciosamente
     const modelo = operaciones[h.operacionId]?.modelo;
     if (h.operacionId === window.APP.operacionActiva && modelo && document.getElementById('montajesList')?.offsetParent) {
         cargarMontajesOperacionSilencioso(h.operacionId, modelo);
     }
 
-    // Mostrar el aviso flotante
     mostrarAvisoMontajeDisponible(terminado, disponibles, h);
 }
 
@@ -138,8 +131,6 @@ function cerrarAvisoMontajeDisponible() {
     document.getElementById('avisoMontajeDisponible')?.remove();
 }
 
-async function irAMontajeDisponible(montajeId) {
-    cerrarAvisoMontajeDisponible();
 async function irAMontajeDisponible(montajeId, operacionId) {
     cerrarAvisoMontajeDisponible();
     
@@ -148,25 +139,20 @@ async function irAMontajeDisponible(montajeId, operacionId) {
         return;
     }
 
-    // 1. Si no estamos en la operación correcta, la abrimos automáticamente
     if (window.APP.operacionActiva !== operacionId) {
         if (typeof seleccionarOperacion === 'function') {
             await seleccionarOperacion(operacionId);
-            // Dar un pequeño respiro para que Firestore devuelva los datos y se pinte
             await new Promise(r => setTimeout(r, 700)); 
         } else {
             showPage('operaciones');
             return;
         }
     } else {
-        // Si ya estamos en la operación, nos aseguramos de estar en la vista de montajes
         if (typeof showPage === 'function') {
             showPage('montajes-operacion');
         }
     }
 
-    // 2. Buscar la tarjeta y hacer scroll
-    // Usamos un setTimeout extra por si la vista de montajes aún se está pintando
     setTimeout(() => {
         const tarjeta = document.getElementById('card_' + montajeId);
         if (tarjeta) {
@@ -209,31 +195,35 @@ async function cargarMontajesOperacion(operacionId, modelo, silencioso = false) 
         container.innerHTML = '<div class="empty-state">⏳ Cargando montajes...</div>';
     }
 
-    const [montajes, estaciones, historial, cronosData, resistenciasGuardadas, materialesCatalogo, escaneosGuardados, solicitudesEstanquidad] = await Promise.all([
+    const [montajes, estaciones, historial, cronosData, resistenciasGuardadas, materialesCatalogo, escaneosGuardados, operaciones, solicitudesEstanquidad] = await Promise.all([
         cargarFirebase('montajes'),
-    cargarFirebase('estaciones'),
-    cargarFirebase('historial_montajes'),
-    cargarFirebase('cronos_operacion', true),
-    cargarFirebase('resistencias_montajes'),
-    cargarFirebase('materiales_catalogo', true),
+        cargarFirebase('estaciones'),
+        cargarFirebase('historial_montajes'),
+        cargarFirebase('cronos_operacion', true),
+        cargarFirebase('resistencias_montajes'),
+        cargarFirebase('materiales_catalogo', true),
         cargarFirebase('componentes_escaneados', true),
-    cargarFirebase('solicitudes_estanquidad', true) // 🆕
+        cargarFirebase('operaciones'),
+        cargarFirebase('solicitudes_estanquidad', true)
     ]);
 
-if (!window.APP._componentesEscaneados) window.APP._componentesEscaneados = {};
-Object.entries(escaneosGuardados).forEach(([clave, data]) => {
-    if (data.montajeId) {
-        window.APP._componentesEscaneados[data.montajeId] = data;
-    }
-});
-window.APP._solicitudesEstanquidad = solicitudesEstanquidad || {};
-Object.keys(montajes).forEach(mid => {
-    const clave = operacionId + '_' + mid;
-    montajes[mid]._resistenciasGuardadas = !!resistenciasGuardadas[clave];
-    const dependeId = resolverDependeDe(montajes[mid], montajes);
-    montajes[mid]._dependeId = dependeId;
-    montajes[mid]._dependeNombre = dependeId ? (montajes[dependeId].nombre || '') : '';
-});
+    const opActual = operaciones[operacionId] || {};
+    window.APP._solicitudesEstanquidad = solicitudesEstanquidad || {};
+
+    if (!window.APP._componentesEscaneados) window.APP._componentesEscaneados = {};
+    Object.entries(escaneosGuardados).forEach(([clave, data]) => {
+        if (data.montajeId) {
+            window.APP._componentesEscaneados[data.montajeId] = data;
+        }
+    });
+
+    Object.keys(montajes).forEach(mid => {
+        const clave = operacionId + '_' + mid;
+        montajes[mid]._resistenciasGuardadas = !!resistenciasGuardadas[clave];
+        const dependeId = resolverDependeDe(montajes[mid], montajes);
+        montajes[mid]._dependeId = dependeId;
+        montajes[mid]._dependeNombre = dependeId ? (montajes[dependeId].nombre || '') : '';
+    });
 
     if (!window.APP.cronosOperacion) window.APP.cronosOperacion = {};
     window.APP.cronosOperacion[operacionId] = cronosData[operacionId] || { montajesActivos: {} };
@@ -303,51 +293,48 @@ Object.keys(montajes).forEach(mid => {
         const color = paleta[colorIdx % paleta.length];
         colorIdx++;
 
-        // 🫧 Detectar si es la Estación 0 para el botón de estanquidad
-const esEstacionCero = (est.nombre || '').toLowerCase().includes('0') || (est.nombre || '').toLowerCase().includes('cero');
-let botonEstanquidadHTML = '';
+        // 🫧 Botón de Estanquidad (solo Estación 0)
+        const esEstacionCero = (est.nombre || '').toLowerCase().includes('0') || (est.nombre || '').toLowerCase().includes('cero');
+        let botonEstanquidadHTML = '';
+        
+        if (esEstacionCero) {
+            const sol = (window.APP._solicitudesEstanquidad || {})[operacionId + '_' + estId];
+            let bgBtn = '#eef2ff', colorBtn = '#4338ca', textoBtn = '🫧 Solicitar Estanquidad', disabled = '';
 
-if (esEstacionCero) {
-    // Comprobamos el estado de la solicitud (lo guardaremos en window.APP._solicitudesEstanquidad)
-    const sol = (window.APP._solicitudesEstanquidad || {})[operacionId + '_' + estId];
-    let bgBtn = '#eef2ff';
-    let colorBtn = '#4338ca';
-    let textoBtn = '🫧 Solicitar Estanquidad';
-    let disabled = '';
+            if (sol) {
+                if (sol.estado === 'pendiente') {
+                    bgBtn = '#fffbeb'; colorBtn = '#c2410c'; textoBtn = '⏳ Estanquidad Pendiente'; disabled = 'opacity:0.8;cursor:not-allowed;';
+                } else if (sol.estado === 'aprobada') {
+                    bgBtn = '#ecfdf5'; colorBtn = '#047857'; textoBtn = '✅ Estanquidad Aprobada'; disabled = 'opacity:0.8;cursor:not-allowed;';
+                } else if (sol.estado === 'rechazada') {
+                    bgBtn = '#fef2f2'; colorBtn = '#b91c1c'; textoBtn = '❌ Rechazada · Volver a pedir';
+                }
+            }
 
-    if (sol) {
-        if (sol.estado === 'pendiente') {
-            bgBtn = '#fffbeb'; colorBtn = '#c2410c'; textoBtn = '⏳ Estanquidad Pendiente'; disabled = 'opacity:0.8;cursor:not-allowed;';
-        } else if (sol.estado === 'aprobada') {
-            bgBtn = '#ecfdf5'; colorBtn = '#047857'; textoBtn = '✅ Estanquidad Aprobada'; disabled = 'opacity:0.8;cursor:not-allowed;';
-        } else if (sol.estado === 'rechazada') {
-            bgBtn = '#fef2f2'; colorBtn = '#b91c1c'; textoBtn = '❌ Rechazada · Volver a pedir';
+            botonEstanquidadHTML = `
+                <button onclick="event.stopPropagation(); ${disabled ? '' : `abrirModalSolicitarEstanquidad('${operacionId}', '${estId}', '${opActual.numero || '—'}')`}" 
+                    style="background:${bgBtn};border:1px solid ${colorBtn}40;color:${colorBtn};padding:5px 12px;border-radius:8px;font-size:0.75rem;font-weight:700;font-family:inherit;${disabled}">
+                    ${textoBtn}
+                </button>
+            `;
         }
-    }
 
-    botonEstanquidadHTML = `
-        <button onclick="event.stopPropagation(); ${disabled ? '' : `abrirModalSolicitarEstanquidad('${operacionId}', '${estId}', '${opActual.numero}')`}" 
-            style="background:${bgBtn};border:1px solid ${colorBtn}40;color:${colorBtn};padding:5px 12px;border-radius:8px;font-size:0.75rem;font-weight:700;font-family:inherit;${disabled}">
-            ${textoBtn}
-        </button>
-    `;
-}
-
-html += `
-    <div style="margin-bottom: 1.5rem;">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:${color.bg};border-radius:10px;border-left:4px solid ${color.dot};margin-bottom:0.75rem;flex-wrap:wrap;gap:8px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-                <span style="width:8px;height:8px;border-radius:50%;background:${color.dot};flex-shrink:0;"></span>
-                <div>
-                    <div style="font-weight:700;font-size:0.95rem;color:${color.text};line-height:1.2;">${est.nombre || 'Sin nombre'}</div>
-                    <div style="font-size:0.72rem;color:${color.text};opacity:0.75;font-weight:500;margin-top:1px;">${est.modelo === 'MS3' ? 'MS3' : 'DC3'} · ${montajesEst.length} montaje${montajesEst.length !== 1 ? 's' : ''}</div>
+        html += `
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:${color.bg};border-radius:10px;border-left:4px solid ${color.dot};margin-bottom:0.75rem;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:${color.dot};flex-shrink:0;"></span>
+                        <div>
+                            <div style="font-weight:700;font-size:0.95rem;color:${color.text};line-height:1.2;">${est.nombre || 'Sin nombre'}</div>
+                            <div style="font-size:0.72rem;color:${color.text};opacity:0.75;font-weight:500;margin-top:1px;">${est.modelo === 'MS3' ? 'MS3' : 'DC3'} · ${montajesEst.length} montaje${montajesEst.length !== 1 ? 's' : ''}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        ${botonEstanquidadHTML}
+                        <span style="font-size:0.85rem;font-weight:700;color:${color.text};font-variant-numeric:tabular-nums;background:white;padding:3px 10px;border-radius:99px;border:1px solid ${color.border};">${horasEstacion}h</span>
+                    </div>
                 </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                ${botonEstanquidadHTML}
-                <span style="font-size:0.85rem;font-weight:700;color:${color.text};font-variant-numeric:tabular-nums;background:white;padding:3px 10px;border-radius:99px;border:1px solid ${color.border};">${horasEstacion}h</span>
-            </div>
-        </div>
+
                 <div style="display:flex;flex-direction:column;gap:0.75rem;">
         `;
 
@@ -1371,7 +1358,8 @@ if (m.paresRequeridos) {
     }
 }
 
-    async function abrirModalSolicitarEstanquidad(operacionId, estacionId, numeroOperacion) {
+// 🫧 NUEVA FUNCIÓN: Solicitar Estanquidad
+async function abrirModalSolicitarEstanquidad(operacionId, estacionId, numeroOperacion) {
     const ok = await confirmar(
         '¿Solicitar prueba de estanquidad para esta estación?\n\nEl técnico de TQC recibirá la petición inmediatamente.',
         { titulo: '🫧 Solicitar Estanquidad', tipo: 'info', okTexto: '✅ Sí, solicitar' }
@@ -1408,3 +1396,6 @@ if (m.paresRequeridos) {
         toast('❌ Error al enviar', '#ef4444');
     }
 }
+
+// Exponer al window para que el HTML pueda llamarla
+window.abrirModalSolicitarEstanquidad = abrirModalSolicitarEstanquidad;
