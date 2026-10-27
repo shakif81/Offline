@@ -776,3 +776,90 @@ cargarTQC();
         toast('❌ Error al guardar', '#ef4444');
     }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   TQC - GESTIÓN DE ESTANQUIDAD
+   ═══════════════════════════════════════════════════════════ */
+
+async function cargarSolicitudesEstanquidadAdmin() {
+    const cont = document.getElementById('tqcEstanquidadContainer');
+    if (!cont) return;
+
+    cont.innerHTML = '<div class="empty-state">⏳ Cargando solicitudes...</div>';
+
+    const solicitudes = await cargarFirebase('solicitudes_estanquidad', true);
+    const arr = Object.entries(solicitudes)
+        .filter(([id, s]) => s.estado === 'pendiente')
+        .sort((a, b) => new Date(a[1].fechaSolicitud) - new Date(b[1].fechaSolicitud));
+
+    if (!arr.length) {
+        cont.innerHTML = `
+            <div style="background:#f0fdf4;border:1px solid #a7f3d0;border-radius:12px;padding:16px;text-align:center;color:#047857;font-weight:600;font-size:0.9rem;">
+                ✅ No hay solicitudes de estanquidad pendientes
+            </div>
+        `;
+        return;
+    }
+
+    let html = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="font-size:1.2rem;">🫧</span>
+            <h4 style="margin:0;color:#1e293b;font-size:1rem;">Solicitudes de Estanquidad Pendientes</h4>
+            <span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:99px;font-size:0.7rem;font-weight:700;">${arr.length}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:20px;">
+    `;
+
+    arr.forEach(([id, s]) => {
+        const fecha = new Date(s.fechaSolicitud).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        html += `
+            <div style="background:white;border:1px solid #fed7aa;border-left:4px solid #f59e0b;border-radius:12px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+                    <div>
+                        <div style="font-weight:800;color:#1e293b;font-size:0.95rem;">Op. ${s.numeroOperacion || '—'}</div>
+                        <div style="font-size:0.75rem;color:#64748b;margin-top:2px;">📍 Estación ${s.estacionId.slice(-4)} · 👤 ${s.operarioSolicita}</div>
+                        <div style="font-size:0.7rem;color:#94a3b8;margin-top:2px;">📅 ${fecha}</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <button onclick="responderEstanquidad('${id}', 'aprobada')" style="flex:1;padding:8px;border:none;border-radius:8px;background:#10b981;color:white;font-weight:700;font-size:0.75rem;cursor:pointer;font-family:inherit;">✅ Aprobar</button>
+                    <button onclick="responderEstanquidad('${id}', 'rechazada')" style="flex:1;padding:8px;border:none;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-weight:700;font-size:0.75rem;cursor:pointer;font-family:inherit;">❌ Rechazar</button>
+                </div>
+            </div>
+        `;
+    });
+
+    html += `</div>`;
+    cont.innerHTML = html;
+}
+
+async function responderEstanquidad(id, nuevoEstado) {
+    let motivo = '';
+    if (nuevoEstado === 'rechazada') {
+        motivo = await preguntar('Motivo del rechazo (el operario lo verá):', 'Ej: Falta apretar tornillos');
+        if (motivo === null) return;
+        if (!motivo.trim()) { toast('⚠️ Escribe un motivo', '#f59e0b'); return; }
+    } else {
+        const ok = await confirmar('¿Aprobar la prueba de estanquidad?');
+        if (!ok) return;
+    }
+
+    mostrarLoading('Guardando...');
+    try {
+        await guardarFirebase('solicitudes_estanquidad', id, {
+            estado: nuevoEstado,
+            revisadoPor: window.APP.operario?.nombre || 'TQC',
+            fechaRevision: new Date().toISOString(),
+            motivoRechazo: motivo
+        });
+        ocultarLoading();
+        toast(nuevoEstado === 'aprobada' ? '✅ Estanquidad aprobada' : '❌ Estanquidad rechazada', nuevoEstado === 'aprobada' ? '#10b981' : '#ef4444');
+        cargarSolicitudesEstanquidadAdmin();
+    } catch (e) {
+        ocultarLoading();
+        toast('❌ Error al guardar', '#ef4444');
+    }
+}
+
+
+
