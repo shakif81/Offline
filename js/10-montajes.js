@@ -399,10 +399,12 @@ function renderTarjetaMontaje(mid, m, color, completadosIds, historial, operacio
         }
     }
 
+    // 🔒 BLOQUEO POR DEPENDENCIA
     if (!estaCompletado && m._dependeId && !completadosIds.has(m._dependeId)) {
         const cronoDep = window.APP.cronosOperacion?.[operacionId];
         const actividadDep = cronoDep?.montajesActivos?.[mid];
         const conActividad = actividadDep && ((actividadDep.operariosActivos || []).length > 0 || (actividadDep.tiempoConsumidoSeg || 0) > 0);
+        
         if (!conActividad) {
             return `
                 <div id="card_${mid}" title="Bloqueado hasta terminar: ${m._dependeNombre}"
@@ -629,10 +631,10 @@ async function mostrarDetalleMontaje(montajeId) {
     }
 
     const [piezasKanban, catalogoMateriales, catalogoTornilleria] = await Promise.all([
-    cargarFirebase('piezas_kanban'),
-    cargarFirebase('materiales_catalogo'),
-    cargarFirebase('tornilleria_catalogo')
-]);
+        cargarFirebase('piezas_kanban'),
+        cargarFirebase('materiales_catalogo'),
+        cargarFirebase('tornilleria_catalogo')
+    ]);
 
     const esMS3 = (m.modelo || 'MS3') === 'MS3';
     const colorModelo = {
@@ -1169,36 +1171,36 @@ async function iniciarMontaje(montajeId) {
 
         const montajeActivoMio = obtenerMiMontajeActivo();
 
-    if (montajeActivoMio && montajeActivoMio.montajeId !== montajeId) {
-    const montajesData = await cargarFirebase('montajes');
-    const nombreActual = montajesData[montajeActivoMio.montajeId]?.nombre || 'Sin nombre';
+        if (montajeActivoMio && montajeActivoMio.montajeId !== montajeId) {
+            const montajesData = await cargarFirebase('montajes');
+            const nombreActual = montajesData[montajeActivoMio.montajeId]?.nombre || 'Sin nombre';
 
-    mostrarLoading('Comprobando montaje...');
-    const validacion = await validarParaTerminar(montajeActivoMio.montajeId, operacionId);
-    ocultarLoading();
+            mostrarLoading('Comprobando montaje...');
+            const validacion = await validarParaTerminar(montajeActivoMio.montajeId, operacionId);
+            ocultarLoading();
 
-    const resp = await mostrarModalCambioMontaje(
-        nombreActual,
-        'cambiar',
-        validacion.ok,
-        validacion.motivo || ''
-    );
+            const resp = await mostrarModalCambioMontaje(
+                nombreActual,
+                'cambiar',
+                validacion.ok,
+                validacion.motivo || ''
+            );
 
-    if (resp === 'cancelar') return;
+            if (resp === 'cancelar') return;
 
-    if (resp === 'terminar') {
-        const terminado = await terminarMontaje(montajeActivoMio.montajeId);
+            if (resp === 'terminar') {
+                const terminado = await terminarMontaje(montajeActivoMio.montajeId);
 
-        if (!terminado) {
-            return;
+                if (!terminado) {
+                    return;
+                }
+
+                await new Promise(r => setTimeout(r, 800));
+            } else if (resp === 'pausar') {
+                await detenerCronoMontaje(operacionId, montajeActivoMio.montajeId);
+                toast('⏸️ Montaje anterior pausado', '#f59e0b');
+            }
         }
-
-        await new Promise(r => setTimeout(r, 800));
-    } else if (resp === 'pausar') {
-        await detenerCronoMontaje(operacionId, montajeActivoMio.montajeId);
-        toast('⏸️ Montaje anterior pausado', '#f59e0b');
-    }
-}
 
         if (montajeActivoMio && montajeActivoMio.montajeId === montajeId) {
             toast('⏱️ Este montaje ya está en curso', '#f59e0b');
@@ -1212,135 +1214,135 @@ async function iniciarMontaje(montajeId) {
             return;
         }
 
-const historial = await cargarFirebase('historial_montajes');
+        const historial = await cargarFirebase('historial_montajes');
 
-const registrosMontaje = Object.entries(historial)
-    .filter(([hid, h]) => 
-        h.montajeId === montajeId && 
-        h.operacionId === operacionId && 
-        h.completado
-    )
-    .sort((a, b) => new Date(b[1].fecha) - new Date(a[1].fecha));
+        const registrosMontaje = Object.entries(historial)
+            .filter(([hid, h]) => 
+                h.montajeId === montajeId && 
+                h.operacionId === operacionId && 
+                h.completado
+            )
+            .sort((a, b) => new Date(b[1].fecha) - new Date(a[1].fecha));
 
-const registroActual = registrosMontaje[0];
-const yaCompletado = !!registroActual;
+        const registroActual = registrosMontaje[0];
+        const yaCompletado = !!registroActual;
 
-if (yaCompletado) {
-    const qcEstado = registroActual[1].qcEstado;
+        if (yaCompletado) {
+            const qcEstado = registroActual[1].qcEstado;
 
-    if (qcEstado === 'aprobado') {
-        toast('✅ Este montaje ya está aprobado por QC', '#10b981');
-        return;
-    }
-
-    if (qcEstado === 'rechazado') {
-        const ok = await confirmar(
-            `⚠️ Este montaje fue RECHAZADO por QC.\n\n📝 Motivo: "${registroActual[1].qcComentario || 'Sin especificar'}"\n\n¿Quieres reabrirlo y corregirlo?`,
-            { 
-                titulo: '🔧 Reabrir montaje rechazado', 
-                tipo: 'warning', 
-                okTexto: '🔧 Sí, reabrir' 
+            if (qcEstado === 'aprobado') {
+                toast('✅ Este montaje ya está aprobado por QC', '#10b981');
+                return;
             }
-        );
-        if (!ok) return;
 
-        await guardarFirebase('historial_montajes', registroActual[0], {
-            completado: false,
-            reabierto: true,
-            fechaReapertura: new Date().toISOString(),
-            notificacionVista: true
-        });
+            if (qcEstado === 'rechazado') {
+                const ok = await confirmar(
+                    `⚠️ Este montaje fue RECHAZADO por QC.\n\n📝 Motivo: "${registroActual[1].qcComentario || 'Sin especificar'}"\n\n¿Quieres reabrirlo y corregirlo?`,
+                    { 
+                        titulo: '🔧 Reabrir montaje rechazado', 
+                        tipo: 'warning', 
+                        okTexto: '🔧 Sí, reabrir' 
+                    }
+                );
+                if (!ok) return;
 
-        setTimeout(actualizarBadgeNotificaciones, 500);
-    }
-}
+                await guardarFirebase('historial_montajes', registroActual[0], {
+                    completado: false,
+                    reabierto: true,
+                    fechaReapertura: new Date().toISOString(),
+                    notificacionVista: true
+                });
 
-if (m.materialesNecesarios) {
-    const catalogo = await cargarFirebase('materiales_catalogo');
-    const verificaciones = await cargarFirebase('materiales_verificados', true);
-    const estId = m.puntoId;
-    const opKey = operacionId + '_' + estId;
-    const verifEstacion = verificaciones[opKey] || { materiales: {} };
-
-    const noEntregados = [];
-    const sinVerificar = [];
-    const parciales = [];
-    const faltantes = [];
-
-    for (const item of m.materialesNecesarios.split('||').filter(p => p)) {
-        const partes = item.split('=');
-        const matId = partes[0];
-        const cantidad = partes[1] || '1';
-        const mCat = catalogo[matId];
-        const nombreMat = mCat ? mCat.nombre : decodeURIComponent(partes[2] || 'Material');
-        const codigo = mCat ? mCat.codigo : (partes[3] ? decodeURIComponent(partes[3]) : '');
-
-        const claveItem = montajeId + '__' + matId;
-        const itemGuardado = verifEstacion.materiales?.[claveItem];
-        const estado = itemGuardado?.estado || 'pendiente';
-
-        const nombreCompleto = `${nombreMat}${codigo ? ' (' + codigo + ')' : ''}`;
-
-        if (estado === 'pendiente') {
-            noEntregados.push(`⏳ ${nombreCompleto}: ${cantidad} uds`);
-        } else if (estado === 'entregado') {
-            sinVerificar.push(`📥 ${nombreCompleto}: ${cantidad} uds`);
-        } else if (estado === 'entregado_parcial') {
-            const entregado = itemGuardado.cantidadEntregada || 0;
-            parciales.push(`🔵 ${nombreCompleto}: ${entregado}/${cantidad} uds`);
-        } else if (estado === 'falta') {
-            const falta = itemGuardado.cantidadFaltante || '?';
-            const motivo = itemGuardado.comentario ? ` · "${itemGuardado.comentario}"` : '';
-            faltantes.push(`🚫 ${nombreCompleto}: faltan ${falta} de ${cantidad}${motivo}`);
+                setTimeout(actualizarBadgeNotificaciones, 500);
+            }
         }
-    }
 
-    const hayProblemas = noEntregados.length > 0 || sinVerificar.length > 0 ||
-                         parciales.length > 0 || faltantes.length > 0;
+        if (m.materialesNecesarios) {
+            const catalogo = await cargarFirebase('materiales_catalogo');
+            const verificaciones = await cargarFirebase('materiales_verificados', true);
+            const estId = m.puntoId;
+            const opKey = operacionId + '_' + estId;
+            const verifEstacion = verificaciones[opKey] || { materiales: {} };
 
-    if (hayProblemas) {
-        let mensaje = '';
-        if (faltantes.length > 0) {
-            mensaje += `🚫 CON FALTA REPORTADA (${faltantes.length}):\n${faltantes.join('\n')}\n\n`;
-        }
-        if (noEntregados.length > 0) {
-            mensaje += `❌ SIN ENTREGAR (${noEntregados.length}):\n${noEntregados.join('\n')}\n\n`;
-        }
-        if (parciales.length > 0) {
-            mensaje += `🔵 ENTREGADOS PARCIALMENTE (${parciales.length}):\n${parciales.join('\n')}\n\n`;
-        }
-        if (sinVerificar.length > 0) {
-            mensaje += `⚠️ ENTREGADOS SIN VERIFICAR (${sinVerificar.length}):\n${sinVerificar.join('\n')}\n\n`;
-        }
-        mensaje += `¿Quieres iniciar igual?`;
+            const noEntregados = [];
+            const sinVerificar = [];
+            const parciales = [];
+            const faltantes = [];
 
-        const ok = await dialogo(
-            mensaje,
-            { titulo: '⚠️ Revisa los materiales', tipo: 'warning', okTexto: '▶️ Iniciar igual' }
-        );
-        if (!ok) return;
-    }
-}
+            for (const item of m.materialesNecesarios.split('||').filter(p => p)) {
+                const partes = item.split('=');
+                const matId = partes[0];
+                const cantidad = partes[1] || '1';
+                const mCat = catalogo[matId];
+                const nombreMat = mCat ? mCat.nombre : decodeURIComponent(partes[2] || 'Material');
+                const codigo = mCat ? mCat.codigo : (partes[3] ? decodeURIComponent(partes[3]) : '');
 
-if (m.paresRequeridos) {
-    const pares = m.paresRequeridos.split(',').map(p => parseFloat(p.trim())).filter(p => p > 0);
-    if (pares.length > 0) {
-        const herramientas = await cargarFirebase('herramientas');
-        const disponibles = Object.entries(herramientas).filter(([hid, h]) =>
-            h.tipo === 'Llave Dinamométrica' &&
-            pares.some(p => parseFloat(h.par) === p) &&
-            (h.estado === 'disponible' || !h.estado)
-        );
+                const claveItem = montajeId + '__' + matId;
+                const itemGuardado = verifEstacion.materiales?.[claveItem];
+                const estado = itemGuardado?.estado || 'pendiente';
 
-        if (disponibles.length === 0) {
-            const ok = await dialogo(
-                `No hay herramientas disponibles para los pares: ${pares.join(', ')} Nm\n\n¿Quieres iniciar igual?`,
-                { titulo: '⚠️ Sin herramientas', tipo: 'warning', okTexto: '▶️ Iniciar igual' }
-            );
-            if (!ok) return;
+                const nombreCompleto = `${nombreMat}${codigo ? ' (' + codigo + ')' : ''}`;
+
+                if (estado === 'pendiente') {
+                    noEntregados.push(`⏳ ${nombreCompleto}: ${cantidad} uds`);
+                } else if (estado === 'entregado') {
+                    sinVerificar.push(`📥 ${nombreCompleto}: ${cantidad} uds`);
+                } else if (estado === 'entregado_parcial') {
+                    const entregado = itemGuardado.cantidadEntregada || 0;
+                    parciales.push(`🔵 ${nombreCompleto}: ${entregado}/${cantidad} uds`);
+                } else if (estado === 'falta') {
+                    const falta = itemGuardado.cantidadFaltante || '?';
+                    const motivo = itemGuardado.comentario ? ` · "${itemGuardado.comentario}"` : '';
+                    faltantes.push(`🚫 ${nombreCompleto}: faltan ${falta} de ${cantidad}${motivo}`);
+                }
+            }
+
+            const hayProblemas = noEntregados.length > 0 || sinVerificar.length > 0 ||
+                                 parciales.length > 0 || faltantes.length > 0;
+
+            if (hayProblemas) {
+                let mensaje = '';
+                if (faltantes.length > 0) {
+                    mensaje += `🚫 CON FALTA REPORTADA (${faltantes.length}):\n${faltantes.join('\n')}\n\n`;
+                }
+                if (noEntregados.length > 0) {
+                    mensaje += `❌ SIN ENTREGAR (${noEntregados.length}):\n${noEntregados.join('\n')}\n\n`;
+                }
+                if (parciales.length > 0) {
+                    mensaje += `🔵 ENTREGADOS PARCIALMENTE (${parciales.length}):\n${parciales.join('\n')}\n\n`;
+                }
+                if (sinVerificar.length > 0) {
+                    mensaje += `⚠️ ENTREGADOS SIN VERIFICAR (${sinVerificar.length}):\n${sinVerificar.join('\n')}\n\n`;
+                }
+                mensaje += `¿Quieres iniciar igual?`;
+
+                const ok = await dialogo(
+                    mensaje,
+                    { titulo: '⚠️ Revisa los materiales', tipo: 'warning', okTexto: '▶️ Iniciar igual' }
+                );
+                if (!ok) return;
+            }
         }
-    }
-}
+
+        if (m.paresRequeridos) {
+            const pares = m.paresRequeridos.split(',').map(p => parseFloat(p.trim())).filter(p => p > 0);
+            if (pares.length > 0) {
+                const herramientas = await cargarFirebase('herramientas');
+                const disponibles = Object.entries(herramientas).filter(([hid, h]) =>
+                    h.tipo === 'Llave Dinamométrica' &&
+                    pares.some(p => parseFloat(h.par) === p) &&
+                    (h.estado === 'disponible' || !h.estado)
+                );
+
+                if (disponibles.length === 0) {
+                    const ok = await dialogo(
+                        `No hay herramientas disponibles para los pares: ${pares.join(', ')} Nm\n\n¿Quieres iniciar igual?`,
+                        { titulo: '⚠️ Sin herramientas', tipo: 'warning', okTexto: '▶️ Iniciar igual' }
+                    );
+                    if (!ok) return;
+                }
+            }
+        }
 
         mostrarLoading('Iniciando montaje...');
         await arrancarCronoMontaje(operacionId, montajeId);
@@ -1397,5 +1399,13 @@ async function abrirModalSolicitarEstanquidad(operacionId, estacionId, numeroOpe
     }
 }
 
-// Exponer al window para que el HTML pueda llamarla
 window.abrirModalSolicitarEstanquidad = abrirModalSolicitarEstanquidad;
+
+
+
+
+
+
+
+
+
