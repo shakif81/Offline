@@ -209,15 +209,16 @@ async function cargarMontajesOperacion(operacionId, modelo, silencioso = false) 
         container.innerHTML = '<div class="empty-state">⏳ Cargando montajes...</div>';
     }
 
-    const [montajes, estaciones, historial, cronosData, resistenciasGuardadas, materialesCatalogo, escaneosGuardados] = await Promise.all([
-    cargarFirebase('montajes'),
+    const [montajes, estaciones, historial, cronosData, resistenciasGuardadas, materialesCatalogo, escaneosGuardados, solicitudesEstanquidad] = await Promise.all([
+        cargarFirebase('montajes'),
     cargarFirebase('estaciones'),
     cargarFirebase('historial_montajes'),
     cargarFirebase('cronos_operacion', true),
     cargarFirebase('resistencias_montajes'),
     cargarFirebase('materiales_catalogo', true),
-    cargarFirebase('componentes_escaneados', true)
-]);
+        cargarFirebase('componentes_escaneados', true),
+    cargarFirebase('solicitudes_estanquidad', true) // 🆕
+    ]);
 
 if (!window.APP._componentesEscaneados) window.APP._componentesEscaneados = {};
 Object.entries(escaneosGuardados).forEach(([clave, data]) => {
@@ -225,7 +226,7 @@ Object.entries(escaneosGuardados).forEach(([clave, data]) => {
         window.APP._componentesEscaneados[data.montajeId] = data;
     }
 });
-
+window.APP._solicitudesEstanquidad = solicitudesEstanquidad || {};
 Object.keys(montajes).forEach(mid => {
     const clave = operacionId + '_' + mid;
     montajes[mid]._resistenciasGuardadas = !!resistenciasGuardadas[clave];
@@ -302,19 +303,51 @@ Object.keys(montajes).forEach(mid => {
         const color = paleta[colorIdx % paleta.length];
         colorIdx++;
 
-        html += `
-            <div style="margin-bottom: 1.5rem;">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:${color.bg};border-radius:10px;border-left:4px solid ${color.dot};margin-bottom:0.75rem;flex-wrap:wrap;gap:8px;">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="width:8px;height:8px;border-radius:50%;background:${color.dot};flex-shrink:0;"></span>
-                        <div>
-                            <div style="font-weight:700;font-size:0.95rem;color:${color.text};line-height:1.2;">${est.nombre || 'Sin nombre'}</div>
-                            <div style="font-size:0.72rem;color:${color.text};opacity:0.75;font-weight:500;margin-top:1px;">${est.modelo === 'MS3' ? 'MS3' : 'DC3'} · ${montajesEst.length} montaje${montajesEst.length !== 1 ? 's' : ''}</div>
-                        </div>
-                    </div>
-                    <span style="font-size:0.85rem;font-weight:700;color:${color.text};font-variant-numeric:tabular-nums;background:white;padding:3px 10px;border-radius:99px;border:1px solid ${color.border};">${horasEstacion}h</span>
-                </div>
+        // 🫧 Detectar si es la Estación 0 para el botón de estanquidad
+const esEstacionCero = (est.nombre || '').toLowerCase().includes('0') || (est.nombre || '').toLowerCase().includes('cero');
+let botonEstanquidadHTML = '';
 
+if (esEstacionCero) {
+    // Comprobamos el estado de la solicitud (lo guardaremos en window.APP._solicitudesEstanquidad)
+    const sol = (window.APP._solicitudesEstanquidad || {})[operacionId + '_' + estId];
+    let bgBtn = '#eef2ff';
+    let colorBtn = '#4338ca';
+    let textoBtn = '🫧 Solicitar Estanquidad';
+    let disabled = '';
+
+    if (sol) {
+        if (sol.estado === 'pendiente') {
+            bgBtn = '#fffbeb'; colorBtn = '#c2410c'; textoBtn = '⏳ Estanquidad Pendiente'; disabled = 'opacity:0.8;cursor:not-allowed;';
+        } else if (sol.estado === 'aprobada') {
+            bgBtn = '#ecfdf5'; colorBtn = '#047857'; textoBtn = '✅ Estanquidad Aprobada'; disabled = 'opacity:0.8;cursor:not-allowed;';
+        } else if (sol.estado === 'rechazada') {
+            bgBtn = '#fef2f2'; colorBtn = '#b91c1c'; textoBtn = '❌ Rechazada · Volver a pedir';
+        }
+    }
+
+    botonEstanquidadHTML = `
+        <button onclick="event.stopPropagation(); ${disabled ? '' : `abrirModalSolicitarEstanquidad('${operacionId}', '${estId}', '${opActual.numero}')`}" 
+            style="background:${bgBtn};border:1px solid ${colorBtn}40;color:${colorBtn};padding:5px 12px;border-radius:8px;font-size:0.75rem;font-weight:700;font-family:inherit;${disabled}">
+            ${textoBtn}
+        </button>
+    `;
+}
+
+html += `
+    <div style="margin-bottom: 1.5rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:${color.bg};border-radius:10px;border-left:4px solid ${color.dot};margin-bottom:0.75rem;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:${color.dot};flex-shrink:0;"></span>
+                <div>
+                    <div style="font-weight:700;font-size:0.95rem;color:${color.text};line-height:1.2;">${est.nombre || 'Sin nombre'}</div>
+                    <div style="font-size:0.72rem;color:${color.text};opacity:0.75;font-weight:500;margin-top:1px;">${est.modelo === 'MS3' ? 'MS3' : 'DC3'} · ${montajesEst.length} montaje${montajesEst.length !== 1 ? 's' : ''}</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                ${botonEstanquidadHTML}
+                <span style="font-size:0.85rem;font-weight:700;color:${color.text};font-variant-numeric:tabular-nums;background:white;padding:3px 10px;border-radius:99px;border:1px solid ${color.border};">${horasEstacion}h</span>
+            </div>
+        </div>
                 <div style="display:flex;flex-direction:column;gap:0.75rem;">
         `;
 
@@ -1335,5 +1368,43 @@ if (m.paresRequeridos) {
         ocultarLoading();
         console.error('❌ Error iniciar montaje:', e);
         toast('❌ Error: ' + e.message, '#ef4444');
+    }
+}
+
+    async function abrirModalSolicitarEstanquidad(operacionId, estacionId, numeroOperacion) {
+    const ok = await confirmar(
+        '¿Solicitar prueba de estanquidad para esta estación?\n\nEl técnico de TQC recibirá la petición inmediatamente.',
+        { titulo: '🫧 Solicitar Estanquidad', tipo: 'info', okTexto: '✅ Sí, solicitar' }
+    );
+    if (!ok) return;
+
+    mostrarLoading('Enviando solicitud...');
+
+    try {
+        const id = 'est_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        const data = {
+            operacionId,
+            numeroOperacion,
+            estacionId,
+            operarioSolicita: window.APP.operario?.nombre || 'Operario',
+            fechaSolicitud: new Date().toISOString(),
+            estado: 'pendiente'
+        };
+
+        await guardarFirebase('solicitudes_estanquidad', id, data);
+        
+        ocultarLoading();
+        toast('🫧 Solicitud enviada a TQC', '#3b82f6', 3000);
+
+        // Recargar los montajes para que el botón cambie a "Pendiente"
+        if (window.APP.operacionActiva === operacionId) {
+            const modelo = window.APP.modeloActivo || 'MS3';
+            cargarMontajesOperacion(operacionId, modelo);
+        }
+
+    } catch (e) {
+        ocultarLoading();
+        console.error('❌ Error enviando solicitud:', e);
+        toast('❌ Error al enviar', '#ef4444');
     }
 }
