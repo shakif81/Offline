@@ -861,5 +861,91 @@ async function responderEstanquidad(id, nuevoEstado) {
     }
 }
 
+/**
+ * Banner grande con sonido cuando una estación se completa y va a TQC.
+ */
+function mostrarAlertaTQCPendiente(qc) {
+    document.getElementById('alertaTQCPendiente')?.remove();
 
+    const alerta = document.createElement('div');
+    alerta.id = 'alertaTQCPendiente';
+    alerta.style.cssText = `
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        background: white;
+        border-radius: 16px;
+        max-width: 420px;
+        width: calc(100% - 40px);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 4px rgba(139,92,246,0.15);
+        z-index: 2147483647;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    `;
+
+    alerta.innerHTML = `
+        <div style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:white;padding:14px 18px;display:flex;align-items:center;gap:12px;">
+            <div style="font-size:2rem;">🔍</div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:800;font-size:1rem;">Estación Lista para TQC</div>
+                <div style="font-size:0.75rem;opacity:0.9;margin-top:2px;">Todos los montajes han sido completados</div>
+            </div>
+        </div>
+        <div style="padding:14px 18px;background:white;">
+            <div style="font-weight:700;font-size:0.9rem;color:#1e293b;margin-bottom:8px;">
+                📍 ${qc.estacionNombre || 'Estación'} · Op. ${qc.numeroOperacion}
+            </div>
+            <div style="font-size:0.82rem;color:#64748b;">
+                ${qc.totalMontajes} montaje(s) pendiente(s) de revisión.
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:0 14px 14px;background:white;">
+            <button onclick="document.getElementById('alertaTQCPendiente').remove()" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:white;color:#64748b;font-weight:600;cursor:pointer;font-size:0.8rem;font-family:inherit;">Cerrar</button>
+            <button onclick="document.getElementById('alertaTQCPendiente').remove(); switchAdminTab('tqc');" style="flex:2;padding:10px;border:none;border-radius:8px;background:#8b5cf6;color:white;font-weight:700;cursor:pointer;font-size:0.85rem;font-family:inherit;">🔍 Ir a revisar</button>
+        </div>
+    `;
+
+    document.body.appendChild(alerta);
+
+    requestAnimationFrame(() => {
+        alerta.style.opacity = '1';
+        alerta.style.transform = 'translateX(-50%) translateY(0)';
+    });
+
+    // 🔊 Sonido de alarma (triple pitido fuerte)
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+            const audioCtx = new AudioCtx();
+            [0, 0.2, 0.4].forEach(delay => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.frequency.value = 880;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime + delay);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + 0.15);
+                osc.start(audioCtx.currentTime + delay);
+                osc.stop(audioCtx.currentTime + delay + 0.15);
+            });
+        }
+    } catch (e) {}
+
+    if (navigator.vibrate) {
+        try { navigator.vibrate([200, 100, 200, 100, 200]); } catch (e) {}
+    }
+
+    setTimeout(() => {
+        if (document.getElementById('alertaTQCPendiente')) {
+            alerta.style.opacity = '0';
+            alerta.style.transform = 'translateX(-50%) translateY(-20px)';
+            setTimeout(() => alerta.remove(), 300);
+        }
+    }, 20000);
+}
 
