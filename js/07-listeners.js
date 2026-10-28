@@ -585,34 +585,26 @@ db.collection('estaciones_qc').onSnapshot(snap => {
 let timerEstanquidad = null;
 db.collection('solicitudes_estanquidad').onSnapshot(snap => {
     if (!window.APP.operario) return;
-    
-    // Solo operarios (no admin/tqc)
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (rol.includes('admin') || rol.includes('supervisor')) return;
 
-    if (timerEstanquidad) clearTimeout(timerEstanquidad);
-    timerEstanquidad = setTimeout(() => {
-        snap.docChanges().forEach(change => {
-            if (change.type !== 'modified') return;
+    snap.docChanges().forEach(change => {
+        if (change.type === 'modified') {
             const s = change.doc.data();
-            
-            // Si es una solicitud de la operación activa y acaba de ser revisada
             if (s.operacionId === window.APP.operacionActiva && s.fechaRevision) {
                 const diffSeg = (Date.now() - new Date(s.fechaRevision).getTime()) / 1000;
-                if (diffSeg > 15) return; // Solo avisos recientes
+                if (diffSeg > 15) return;
                 
+                if (s.estado === 'aprobada') toast('✅ Estanquidad APROBADA', '#10b981');
+                else if (s.estado === 'rechazada') toast(`❌ Estanquidad RECHAZADA: ${s.motivoRechazo}`, '#ef4444');
                 
-mostrarAlertaEstanquidad(s);
-                }
-                
-                // Refrescar la vista para que el botón cambie de color/estado
-                const modelo = window.APP.modeloActivo || 'MS3';
+                // Refrescar la vista del operario
                 if (typeof cargarMontajesOperacion === 'function') {
-                    cargarMontajesOperacion(window.APP.operacionActiva, modelo);
+                    cargarMontajesOperacion(window.APP.operacionActiva, window.APP.modeloActivo || 'MS3');
                 }
             }
-        });
-    }, 500);
-});   
+        }
+    });
+});
     console.log('✅ Listeners registrados (con tiempo real)');
 }
