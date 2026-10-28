@@ -549,30 +549,23 @@ db.collection('materiales_verificados').onSnapshot(() => {
 });
 
 db.collection('estaciones_qc').onSnapshot(snap => {
+db.collection('estaciones_qc').onSnapshot(snap => {
     if (!window.APP.operario) return;
+
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (!rol.includes('admin') && !rol.includes('supervisor')) return;
 
-    // 🆕 DETECTAR NUEVOS TQC Y MOSTRAR ALERTA
-    snap.docChanges().forEach(change => {
-        if (change.type === 'added') {
-            const qc = change.doc.data();
-            if (qc.estado === 'pendiente') {
-                mostrarAlertaTQCPendiente(qc);
-            }
-        }
-    });
-
-    // --- Tu código actual del badge (déjalo igual) ---
     let pendientes = 0;
     snap.forEach(doc => {
         const qc = doc.data();
-        if (qc.estado === 'pendiente' || qc.estado === 'parcial') pendientes++;
+        if (qc.estado === 'pendiente' || qc.estado === 'parcial') {
+            pendientes++;
+        }
     });
+
     if (typeof actualizarBadgeTQCSidebar === 'function') {
         actualizarBadgeTQCSidebar(pendientes);
     }
-    
 
     const panelTqc = document.getElementById('adminPanelTqc');
     const adminActivo = document.getElementById('admin')?.classList.contains('active');
