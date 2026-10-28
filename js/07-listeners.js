@@ -550,21 +550,29 @@ db.collection('materiales_verificados').onSnapshot(() => {
 
 db.collection('estaciones_qc').onSnapshot(snap => {
     if (!window.APP.operario) return;
-
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (!rol.includes('admin') && !rol.includes('supervisor')) return;
 
-    let pendientes = 0;
-    snap.forEach(doc => {
-        const qc = doc.data();
-        if (qc.estado === 'pendiente' || qc.estado === 'parcial') {
-            pendientes++;
+    // 🆕 DETECTAR NUEVOS TQC Y MOSTRAR ALERTA
+    snap.docChanges().forEach(change => {
+        if (change.type === 'added') {
+            const qc = change.doc.data();
+            if (qc.estado === 'pendiente') {
+                mostrarAlertaTQCPendiente(qc);
+            }
         }
     });
 
+    // --- Tu código actual del badge (déjalo igual) ---
+    let pendientes = 0;
+    snap.forEach(doc => {
+        const qc = doc.data();
+        if (qc.estado === 'pendiente' || qc.estado === 'parcial') pendientes++;
+    });
     if (typeof actualizarBadgeTQCSidebar === 'function') {
         actualizarBadgeTQCSidebar(pendientes);
     }
+    
 
     const panelTqc = document.getElementById('adminPanelTqc');
     const adminActivo = document.getElementById('admin')?.classList.contains('active');
@@ -600,10 +608,8 @@ db.collection('solicitudes_estanquidad').onSnapshot(snap => {
                 const diffSeg = (Date.now() - new Date(s.fechaRevision).getTime()) / 1000;
                 if (diffSeg > 15) return; // Solo avisos recientes
                 
-                if (s.estado === 'aprobada') {
-                    toast('✅ Estanquidad APROBADA por TQC', '#10b981', 5000);
-                } else if (s.estado === 'rechazada') {
-                    toast(`❌ Estanquidad RECHAZADA: ${s.motivoRechazo}`, '#ef4444', 6000);
+                
+mostrarAlertaEstanquidad(s);
                 }
                 
                 // Refrescar la vista para que el botón cambie de color/estado
