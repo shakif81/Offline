@@ -616,5 +616,35 @@ db.collection('solicitudes_estanquidad').onSnapshot(snap => {
     }, 500);
 });
 
+// ═══════════════════════════════════════════════════════════
+// ESTANQUIDAD - Alerta para el Admin
+// ═══════════════════════════════════════════════════════════
+db.collection('solicitudes_estanquidad').onSnapshot(snap => {
+    if (!window.APP.operario) return;
+    
+    // Solo para Admin / Supervisor
+    const rol = (window.APP.operario.puesto || '').toLowerCase();
+    if (!rol.includes('admin') && !rol.includes('supervisor')) return;
+
+    snap.docChanges().forEach(change => {
+        if (change.type === 'added') {
+            const s = change.doc.data();
+            if (s.estado === 'pendiente') {
+                // Dar un pequeño respiro para que no choque con la carga inicial
+                setTimeout(() => {
+                    mostrarAlertaAdmin({
+                        tipo: 'estanquidad',
+                        titulo: 'Nueva Solicitud de Estanquidad',
+                        subtitulo: `Solicitada por: ${s.operarioSolicita || 'Operario'}`,
+                        operacion: s.numeroOperacion,
+                        estacion: 'Estación de trabajo',
+                        detalle: 'El operario ha solicitado la prueba de estanquidad para esta operación.'
+                    });
+                }, 500);
+            }
+        }
+    });
+});
+    
     console.log('✅ Listeners registrados (con tiempo real)');
 }
