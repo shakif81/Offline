@@ -74,7 +74,99 @@ function mostrarAlertaAdmin(datos) {
                 osc.stop(audioCtx.currentTime + delay + 0.15);
             });
         }
+function mostrarAlertaAdmin(datos) {
+    document.getElementById('alertaAdminGrande')?.remove();
+
+    const esTQC = datos.tipo === 'tqc';
+    const colorCabecera = esTQC ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' : 'linear-gradient(135deg, #f59e0b, #d97706)';
+    const icono = esTQC ? '🔍' : '🫧';
+
+    const alerta = document.createElement('div');
+    alerta.id = 'alertaAdminGrande';
+    // 🆕 Posicionamiento a 100px del techo y max-height para que quepa siempre
+    alerta.style.cssText = `
+        position: fixed;
+        top: 100px; 
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        border-radius: 16px;
+        max-width: 440px;
+        width: calc(100% - 40px);
+        max-height: calc(100vh - 140px);
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 4px ${esTQC ? 'rgba(139,92,246,0.15)' : 'rgba(245,158,11,0.15)'};
+        z-index: 2147483647;
+        display: flex;
+        flex-direction: column;
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    `;
+
+    alerta.innerHTML = `
+        <div style="background:${colorCabecera};color:white;padding:14px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;">
+            <div style="font-size:2rem;">${icono}</div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:800;font-size:1.05rem;">${datos.titulo}</div>
+                <div style="font-size:0.75rem;opacity:0.9;margin-top:2px;">${datos.subtitulo}</div>
+            </div>
+            <button onclick="document.getElementById('alertaAdminGrande').remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:34px;height:34px;border-radius:10px;font-size:1.1rem;cursor:pointer;flex-shrink:0;">✕</button>
+        </div>
+        <div style="padding:16px 18px;background:white;">
+            <div style="font-weight:700;font-size:0.9rem;color:#1e293b;margin-bottom:6px;">
+                📍 ${datos.estacion || 'Estación'} · Op. ${datos.operacion || '—'}
+            </div>
+            ${datos.detalle ? `<div style="font-size:0.85rem;color:#64748b;line-height:1.4;">${datos.detalle}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;padding:0 16px 16px;background:white;flex-shrink:0;">
+            <button onclick="document.getElementById('alertaAdminGrande').remove()" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:white;color:#64748b;font-weight:700;cursor:pointer;font-size:0.85rem;font-family:inherit;">Cerrar</button>
+            <button onclick="document.getElementById('alertaAdminGrande').remove(); switchAdminTab('tqc');" style="flex:2;padding:10px;border:none;border-radius:10px;background:${esTQC ? '#6366f1' : '#f59e0b'};color:white;font-weight:700;cursor:pointer;font-size:0.85rem;font-family:inherit;">
+                🔍 Ir a revisar
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(alerta);
+
+    // 🆕 Animación de entrada más simple para evitar bugs en móviles
+    requestAnimationFrame(() => {
+        alerta.style.opacity = '1';
+        alerta.style.transform = 'translateX(-50%) translateY(10px)'; // Baja un poquito al aparecer
+    });
+
+    // 🔊 Sonido de alarma
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+            const audioCtx = new AudioCtx();
+            [0, 0.2, 0.4].forEach(delay => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.frequency.value = esTQC ? 880 : 660; 
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime + delay);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + 0.15);
+                osc.start(audioCtx.currentTime + delay);
+                osc.stop(audioCtx.currentTime + delay + 0.15);
+            });
+        }
     } catch (e) {}
+
+    // 📳 Vibración
+    if (navigator.vibrate) {
+        try { navigator.vibrate([200, 100, 200, 100, 200]); } catch (e) {}
+    }
+
+    // Auto-cerrar a los 20 segundos
+    setTimeout(() => {
+        if (document.getElementById('alertaAdminGrande')) {
+            alerta.style.opacity = '0';
+            setTimeout(() => document.getElementById('alertaAdminGrande')?.remove(), 300);
+        }
+    }, 20000);
+}
 
 function mostrarAlertaAdmin(datos) {
     document.getElementById('alertaAdminGrande')?.remove();
