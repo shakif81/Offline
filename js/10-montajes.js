@@ -1401,6 +1401,106 @@ async function abrirModalSolicitarEstanquidad(operacionId, estacionId, numeroOpe
 
 window.abrirModalSolicitarEstanquidad = abrirModalSolicitarEstanquidad;
 
+/**
+ * Banner grande con sonido cuando TQC responde a una estanquidad.
+ */
+function mostrarAlertaEstanquidad(datos) {
+    document.getElementById('alertaEstanquidad')?.remove();
+
+    const esAprobada = datos.estado === 'aprobada';
+    const colorCabecera = esAprobada ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)';
+    const icono = esAprobada ? '✅' : '❌';
+    const titulo = esAprobada ? 'Estanquidad APROBADA' : 'Estanquidad RECHAZADA';
+    const subtitulo = esAprobada ? 'La prueba ha sido validada por TQC' : 'Revisa el motivo y vuelve a solicitar';
+
+    const alerta = document.createElement('div');
+    alerta.id = 'alertaEstanquidad';
+    alerta.style.cssText = `
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        background: white;
+        border-radius: 16px;
+        max-width: 420px;
+        width: calc(100% - 40px);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 4px ${esAprobada ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'};
+        z-index: 2147483647;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    `;
+
+    alerta.innerHTML = `
+        <div style="background:${colorCabecera};color:white;padding:14px 18px;display:flex;align-items:center;gap:12px;">
+            <div style="font-size:2rem;">${icono}</div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:800;font-size:1rem;">${titulo}</div>
+                <div style="font-size:0.75rem;opacity:0.9;margin-top:2px;">${subtitulo}</div>
+            </div>
+        </div>
+        <div style="padding:14px 18px;background:white;">
+            <div style="font-weight:700;font-size:0.9rem;color:#1e293b;margin-bottom:8px;">
+                📍 Estación ${datos.estacionNombre || datos.estacionId} · Op. ${datos.numeroOperacion}
+            </div>
+            ${!esAprobada && datos.motivoRechazo ? `
+                <div style="background:#fef2f2;border-left:3px solid #ef4444;border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+                    <div style="font-size:0.7rem;color:#b91c1c;font-weight:700;margin-bottom:4px;">📝 Motivo del rechazo:</div>
+                    <div style="font-size:0.85rem;color:#1e293b;line-height:1.4;">${datos.motivoRechazo}</div>
+                </div>
+            ` : ''}
+        </div>
+        <div style="display:flex;gap:8px;padding:0 14px 14px;background:white;">
+            <button onclick="document.getElementById('alertaEstanquidad').remove()" style="flex:1;padding:10px;border:none;border-radius:8px;background:${esAprobada ? '#10b981' : '#ef4444'};color:white;font-weight:700;cursor:pointer;font-size:0.85rem;font-family:inherit;">Entendido</button>
+        </div>
+    `;
+
+    document.body.appendChild(alerta);
+
+    requestAnimationFrame(() => {
+        alerta.style.opacity = '1';
+        alerta.style.transform = 'translateX(-50%) translateY(0)';
+    });
+
+    // 🔊 Sonido de alarma
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+            const audioCtx = new AudioCtx();
+            const freqs = esAprobada ? [600, 800, 1000] : [500, 400, 500, 400];
+            freqs.forEach((freq, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                }, i * 200);
+            });
+        }
+    } catch (e) {}
+
+    // 📳 Vibración
+    if (navigator.vibrate) {
+        try { navigator.vibrate(esAprobada ? [200, 100, 200] : [300, 100, 300, 100, 300]); } catch (e) {}
+    }
+
+    // Auto-cerrar a los 15s
+    setTimeout(() => {
+        if (document.getElementById('alertaEstanquidad')) {
+            alerta.style.opacity = '0';
+            alerta.style.transform = 'translateX(-50%) translateY(-20px)';
+            setTimeout(() => alerta.remove(), 300);
+        }
+    }, 15000);
+}
 
 
 
