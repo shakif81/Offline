@@ -548,12 +548,35 @@ db.collection('materiales_verificados').onSnapshot(() => {
     }, 500);
 });
 
+// ═══════════════════════════════════════════════════════════
+// TQC - Badge del sidebar y Alerta en tiempo real
+// ═══════════════════════════════════════════════════════════
 db.collection('estaciones_qc').onSnapshot(snap => {
     if (!window.APP.operario) return;
 
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (!rol.includes('admin') && !rol.includes('supervisor')) return;
 
+    // 🆕 1. Alerta visual en tiempo real
+    snap.docChanges().forEach(change => {
+        if (change.type === 'added') {
+            const qc = change.doc.data();
+            if (qc.estado === 'pendiente') {
+                setTimeout(() => {
+                    mostrarAlertaAdmin({
+                        tipo: 'tqc',
+                        titulo: 'Estación Lista para TQC',
+                        subtitulo: 'Todos los montajes completados',
+                        operacion: qc.numeroOperacion,
+                        estacion: qc.estacionNombre || 'Estación',
+                        detalle: `Hay ${qc.totalMontajes || 'varios'} montajes listos para revisión de calidad.`
+                    });
+                }, 500);
+            }
+        }
+    });
+
+    // 2. Tu código actual del badge (déjalo como está)
     let pendientes = 0;
     snap.forEach(doc => {
         const qc = doc.data();
