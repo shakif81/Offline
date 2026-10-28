@@ -84,7 +84,7 @@ function mostrarAlertaAdmin(datos) {
     // Auto-cerrar a los 20 segundos
     setTimeout(() => {
         if (document.getElementById('alertaAdminGrande')) {
-            document.getElementById('alertaAdminGrande').style.transform = 'translateX(-50%) translateY(-100px)';
+            document.getElementById('alertaAdminGrande').style.transform = 'translateX(-50%) translateY(0)';
             setTimeout(() => document.getElementById('alertaAdminGrande')?.remove(), 300);
         }
     }, 20000);
