@@ -14,12 +14,13 @@ function mostrarAlertaAdmin(datos) {
     const alerta = document.createElement('div');
     alerta.id = 'alertaAdminGrande';
     alerta.style.cssText = `
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%) translateY(-100px);
-        background: white;
-        border-radius: 16px;
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 85px); /* 🆕 Baja el aviso para que no se corte */
+    left: 50%;
+    transform: translateX(-50%) translateY(-150px);
+    background: white;
+    max-height: calc(100vh - 120px); /* 🆕 Evita que se salga por abajo */
+    overflow-y: auto; /* 🆕 Por si el texto es muy largo */
         max-width: 440px;
         width: calc(100% - 40px);
         box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 4px ${esTQC ? 'rgba(139,92,246,0.15)' : 'rgba(245,158,11,0.15)'};
