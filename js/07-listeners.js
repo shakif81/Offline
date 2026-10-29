@@ -551,12 +551,13 @@ db.collection('materiales_verificados').onSnapshot(() => {
 // ═══════════════════════════════════════════════════════════
 // TQC - Badge del sidebar y Alerta en tiempo real
 // ═══════════════════════════════════════════════════════════
-db.collection('estaciones_qc').onSnapshot(snap => {
+let _primeraCargaTQC = true
+    db.collection('estaciones_qc').onSnapshot(snap => {
     if (!window.APP.operario) return;
 
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (!rol.includes('admin') && !rol.includes('supervisor')) return;
-
+if (_primeraCargaTQC) { _primeraCargaTQC = false; return; }
     // 🆕 1. Alerta visual en tiempo real
     snap.docChanges().forEach(change => {
         if (change.type === 'added') {
@@ -642,13 +643,19 @@ db.collection('solicitudes_estanquidad').onSnapshot(snap => {
 // ═══════════════════════════════════════════════════════════
 // ESTANQUIDAD - Alerta para el Admin
 // ═══════════════════════════════════════════════════════════
-db.collection('solicitudes_estanquidad').onSnapshot(snap => {
+let _primeraCargaEstanquidad = true; //
+    
+    db.collection('solicitudes_estanquidad').onSnapshot(snap => {
     if (!window.APP.operario) return;
     
     // Solo para Admin / Supervisor
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (!rol.includes('admin') && !rol.includes('supervisor')) return;
 
+        if (_primeraCargaEstanquidad) {
+        _primeraCargaEstanquidad = false;
+        return; 
+}
     snap.docChanges().forEach(change => {
         if (change.type === 'added') {
             const s = change.doc.data();
