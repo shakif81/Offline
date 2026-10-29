@@ -1370,8 +1370,8 @@ async function abrirModalSolicitarEstanquidad(operacionId, estacionId, numeroOpe
 
     mostrarLoading('Enviando solicitud...');
 
-    try {
-        const id = 'est_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+    try {// ID fijo para que el botón se entere de que ya se ha pedido
+const id = operacionId + '_' + estacionId;
         const data = {
             operacionId,
             numeroOperacion,
