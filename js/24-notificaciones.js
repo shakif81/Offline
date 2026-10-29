@@ -88,13 +88,7 @@ function mostrarAlertaAdmin(datos) {
         try { navigator.vibrate([200, 100, 200, 100, 200]); } catch (e) {}
     }
 
-    // Auto-cerrar a los 20 segundos
-    setTimeout(() => {
-        if (document.getElementById('alertaAdminGrande')) {
-            alerta.style.opacity = '0';
-            setTimeout(() => document.getElementById('alertaAdminGrande')?.remove(), 300);
-        }
-    }, 20000);
+    
 }
 
 async function cargarNotificaciones() {
