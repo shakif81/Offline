@@ -644,9 +644,9 @@ db.collection('solicitudes_estanquidad').onSnapshot(snap => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// ESTANQUIDAD - Alerta para el Admin
+// ESTANQUIDAD - Alerta y Actualización en tiempo real
 // ═══════════════════════════════════════════════════════════
-let _primeraCargaEstanquidad = true; // Evita que salte al iniciar sesión (ya lo hace el login)
+let _primeraCargaEstanquidad = true;
 
 db.collection('solicitudes_estanquidad').onSnapshot(snap => {
     if (!window.APP.operario) return;
@@ -655,26 +655,37 @@ db.collection('solicitudes_estanquidad').onSnapshot(snap => {
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (!rol.includes('admin') && !rol.includes('supervisor')) return;
 
+    // Ignorar la carga inicial al abrir la app
     if (_primeraCargaEstanquidad) {
         _primeraCargaEstanquidad = false;
         return; 
     }
 
+    // 🆕 1. Refrescar la vista del panel si el admin lo tiene abierto
+    const adminActivo = document.getElementById('admin')?.classList.contains('active');
+    const panelTqc = document.getElementById('adminPanelTqc');
+    const tqcVisible = adminActivo && panelTqc && panelTqc.style.display !== 'none';
+    
+    if (tqcVisible && typeof cargarSolicitudesEstanquidadAdmin === 'function') {
+        // Un pequeño delay para agrupar varios cambios seguidos y no parpadear
+        if (window.APP._timerRecargaEstanquidad) clearTimeout(window.APP._timerRecargaEstanquidad);
+        window.APP._timerRecargaEstanquidad = setTimeout(() => {
+            cargarSolicitudesEstanquidadAdmin();
+        }, 300);
+    }
+
+    // 🆕 2. Lanzar alertas si hay cambios recientes
     snap.docChanges().forEach(change => {
-        // 🔧 AHORA ESCUCHAMOS TANTO 'added' COMO 'modified'
         if (change.type === 'added' || change.type === 'modified') {
             const s = change.doc.data();
             
-            // Si el estado es pendiente, significa que es una nueva solicitud o una re-solicitud
             if (s.estado === 'pendiente') {
-                
-                // Evitar alertas si el admin acaba de actualizar la página (ignorar cambios de más de 30s)
+                // Ignorar si el cambio es muy viejo (ej: al recargar la app)
                 if (s.fechaSolicitud) {
                     const diffSeg = (Date.now() - new Date(s.fechaSolicitud).getTime()) / 1000;
                     if (diffSeg > 30) return;
                 }
 
-                // Dar un pequeño respiro para que no choque con la carga inicial
                 setTimeout(() => {
                     mostrarAlertaAdmin({
                         tipo: 'estanquidad',
