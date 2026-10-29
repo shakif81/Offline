@@ -602,42 +602,45 @@ if (_primeraCargaTQC) { _primeraCargaTQC = false; return; }
     }
 });
 
-    // ═══════════════════════════════════════════════════════════
-// SOLICITUDES ESTANQUIDAD - Aviso en tiempo real al operario
 // ═══════════════════════════════════════════════════════════
-let timerEstanquidad = null;
+// ESTANQUIDAD - Actualización en vivo para el Operario
+// ═══════════════════════════════════════════════════════════
+let _primeraCargaEstanquidadOperario = true;
+
 db.collection('solicitudes_estanquidad').onSnapshot(snap => {
     if (!window.APP.operario) return;
     
-    // Solo operarios (no admin/tqc)
+    // Solo para operarios
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (rol.includes('admin') || rol.includes('supervisor')) return;
 
-    if (timerEstanquidad) clearTimeout(timerEstanquidad);
-    timerEstanquidad = setTimeout(() => {
-        snap.docChanges().forEach(change => {
-            if (change.type !== 'modified') return;
+    // Ignorar la primera carga para no recargar al entrar
+    if (_primeraCargaEstanquidadOperario) {
+        _primeraCargaEstanquidadOperario = false;
+        return;
+    }
+
+    snap.docChanges().forEach(change => {
+        if (change.type === 'modified') {
             const s = change.doc.data();
             
-            // Si es una solicitud de la operación activa y acaba de ser revisada
-            if (s.operacionId === window.APP.operacionActiva && s.fechaRevision) {
-                const diffSeg = (Date.now() - new Date(s.fechaRevision).getTime()) / 1000;
-                if (diffSeg > 15) return; // Solo avisos recientes
+            // Si la solicitud modificada es de la operación que estoy viendo
+            if (s.operacionId === window.APP.operacionActiva) {
                 
-                if (s.estado === 'aprobada') {
-                    toast('✅ Estanquidad APROBADA por TQC', '#10b981', 5000);
-                } else if (s.estado === 'rechazada') {
-                    toast(`❌ Estanquidad RECHAZADA: ${s.motivoRechazo}`, '#ef4444', 6000);
-                }
-                
-                // Refrescar la vista para que el botón cambie de color/estado
-                const modelo = window.APP.modeloActivo || 'MS3';
+                // Refrescar la vista de montajes
                 if (typeof cargarMontajesOperacion === 'function') {
-                    cargarMontajesOperacion(window.APP.operacionActiva, modelo);
+                    cargarMontajesOperacion(window.APP.operacionActiva, window.APP.modeloActivo || 'MS3');
+                }
+
+                // Avisar al operario (opcional)
+                if (s.estado === 'aprobada') {
+                    toast('✅ Estanquidad Aprobada por TQC', '#10b981', 4000);
+                } else if (s.estado === 'rechazada') {
+                    toast(`❌ Estanquidad Rechazada: ${s.motivoRechazo}`, '#ef4444', 5000);
                 }
             }
-        });
-    }, 500);
+        }
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
