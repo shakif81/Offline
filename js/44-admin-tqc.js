@@ -817,7 +817,7 @@ async function cargarSolicitudesEstanquidadAdmin() {
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
                     <div>
                         <div style="font-weight:800;color:#1e293b;font-size:0.95rem;">Op. ${s.numeroOperacion || '—'}</div>
-                        <div style="font-size:0.75rem;color:#64748b;margin-top:2px;">📍 ${s.estacionNombre || 'Estación'} · 👤 ${s.operarioSolicita}</div>
+                        <div style="font-size:0.75rem;color:#64748b;margin-top:2px;">📍 Estación ${s.estacionId.slice(-4)} · 👤 ${s.operarioSolicita}</div>
                         <div style="font-size:0.7rem;color:#94a3b8;margin-top:2px;">📅 ${fecha}</div>
                     </div>
                 </div>
