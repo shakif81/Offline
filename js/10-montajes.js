@@ -322,7 +322,7 @@ if (esEstacionCero) {
     }
 
     botonEstanquidadHTML = `
-        <button ${bloqueado ? 'disabled' : ''} onclick="event.stopPropagation(); ${bloqueado ? 'return false;' : `abrirModalSolicitarEstanquidad('${operacionId}', '${estId}', '${opActual.numero || '—'}')`}" 
+        <button ${bloqueado ? 'disabled' : ''} onclick="event.stopPropagation(); ${bloqueado ? 'return false;' : `abrirModalSolicitarEstanquidad('${operacionId}', '${estId}', '${opActual.numero || '—'}', '${(est.nombre || '').replace(/'/g, "\\'")}')`}"  
             style="background:${bgBtn};border:1px solid ${colorBtn}40;color:${colorBtn};padding:5px 12px;border-radius:8px;font-size:0.75rem;font-weight:700;font-family:inherit;${bloqueado ? 'opacity:0.6;cursor:not-allowed;pointer-events:none;' : ''}">
             ${textoBtn}
         </button>
@@ -1386,6 +1386,7 @@ const id = operacionId + '_' + estacionId;
             operacionId,
             numeroOperacion,
             estacionId,
+            estacionNombre: estacionNombre,
             operarioSolicita: window.APP.operario?.nombre || 'Operario',
             fechaSolicitud: new Date().toISOString(),
             estado: 'pendiente'
