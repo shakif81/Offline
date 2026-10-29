@@ -646,23 +646,34 @@ db.collection('solicitudes_estanquidad').onSnapshot(snap => {
 // ═══════════════════════════════════════════════════════════
 // ESTANQUIDAD - Alerta para el Admin
 // ═══════════════════════════════════════════════════════════
-let _primeraCargaEstanquidad = true; //
-    
-    db.collection('solicitudes_estanquidad').onSnapshot(snap => {
+let _primeraCargaEstanquidad = true; // Evita que salte al iniciar sesión (ya lo hace el login)
+
+db.collection('solicitudes_estanquidad').onSnapshot(snap => {
     if (!window.APP.operario) return;
     
     // Solo para Admin / Supervisor
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (!rol.includes('admin') && !rol.includes('supervisor')) return;
 
-        if (_primeraCargaEstanquidad) {
+    if (_primeraCargaEstanquidad) {
         _primeraCargaEstanquidad = false;
         return; 
-}
+    }
+
     snap.docChanges().forEach(change => {
-        if (change.type === 'added') {
+        // 🔧 AHORA ESCUCHAMOS TANTO 'added' COMO 'modified'
+        if (change.type === 'added' || change.type === 'modified') {
             const s = change.doc.data();
+            
+            // Si el estado es pendiente, significa que es una nueva solicitud o una re-solicitud
             if (s.estado === 'pendiente') {
+                
+                // Evitar alertas si el admin acaba de actualizar la página (ignorar cambios de más de 30s)
+                if (s.fechaSolicitud) {
+                    const diffSeg = (Date.now() - new Date(s.fechaSolicitud).getTime()) / 1000;
+                    if (diffSeg > 30) return;
+                }
+
                 // Dar un pequeño respiro para que no choque con la carga inicial
                 setTimeout(() => {
                     mostrarAlertaAdmin({
@@ -671,7 +682,7 @@ let _primeraCargaEstanquidad = true; //
                         subtitulo: `Solicitada por: ${s.operarioSolicita || 'Operario'}`,
                         operacion: s.numeroOperacion,
                         estacion: 'Estación de trabajo',
-                        detalle: 'El operario ha solicitado la prueba de estanquidad para esta operación.'
+                        detalle: 'El operario ha solicitado (o vuelto a solicitar) la prueba de estanquidad.'
                     });
                 }, 500);
             }
