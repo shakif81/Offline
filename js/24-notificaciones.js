@@ -1,6 +1,57 @@
 window.APP._alertasQCMostradas = new Set();
 
 /**
+ * Revisa si hay solicitudes pendientes al iniciar sesión y avisa al admin.
+ */
+async function comprobarPendientesAlIniciar() {
+    if (!window.APP.operario) return;
+    
+    // Solo para Admin / Supervisor
+    const rol = (window.APP.operario.puesto || '').toLowerCase();
+    if (!rol.includes('admin') && !rol.includes('supervisor')) return;
+
+    try {
+        const [solicitudes, qcs] = await Promise.all([
+            cargarFirebase('solicitudes_estanquidad', true),
+            cargarFirebase('estaciones_qc', true)
+        ]);
+
+        const pendientesEstanquidad = Object.values(solicitudes).filter(s => s.estado === 'pendiente').length;
+        const pendientesTQC = Object.values(qcs).filter(q => q.estado === 'pendiente' || q.estado === 'parcial').length;
+
+        if (pendientesEstanquidad > 0 || pendientesTQC > 0) {
+            let detalle = '';
+            let titulo = 'Tareas Pendientes';
+            let tipo = 'tqc';
+
+            if (pendientesEstanquidad > 0 && pendientesTQC > 0) {
+                detalle = `Tienes ${pendientesEstanquidad} solicitud(es) de estanquidad y ${pendientesTQC} estación(es) esperando TQC.`;
+            } else if (pendientesEstanquidad > 0) {
+                tipo = 'estanquidad';
+                titulo = 'Estanquidad Pendiente';
+                detalle = `Hay ${pendientesEstanquidad} solicitud(es) de estanquidad esperando tu revisión.`;
+            } else {
+                tipo = 'tqc';
+                titulo = 'Estaciones pendientes de TQC';
+                detalle = `Hay ${pendientesTQC} estación(es) listas para revisar.`;
+            }
+
+            mostrarAlertaAdmin({
+                tipo: tipo,
+                titulo: titulo,
+                subtitulo: 'Resumen de tu bandeja de entrada',
+                operacion: 'Varias',
+                estacion: 'Varias',
+                detalle: detalle
+            });
+        }
+    } catch (e) {
+        console.warn('Error comprobando pendientes al iniciar:', e);
+    }
+}
+
+
+/**
  * Alerta visual flotante para el Admin (TQC / Estanquidad)
  */
 function mostrarAlertaAdmin(datos) {
