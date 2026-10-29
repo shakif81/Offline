@@ -294,30 +294,30 @@ async function cargarMontajesOperacion(operacionId, modelo, silencioso = false) 
         colorIdx++;
 
         // 🫧 Botón de Estanquidad (solo Estación 0)
-        const esEstacionCero = (est.nombre || '').toLowerCase().includes('0') || (est.nombre || '').toLowerCase().includes('cero');
-        let botonEstanquidadHTML = '';
-        
-        if (esEstacionCero) {
-            const sol = (window.APP._solicitudesEstanquidad || {})[operacionId + '_' + estId];
-            let bgBtn = '#eef2ff', colorBtn = '#4338ca', textoBtn = '🫧 Solicitar Estanquidad', disabled = '';
+const esEstacionCero = (est.nombre || '').toLowerCase().includes('0') || (est.nombre || '').toLowerCase().includes('cero');
+let botonEstanquidadHTML = '';
 
-            if (sol) {
-                if (sol.estado === 'pendiente') {
-                    bgBtn = '#fffbeb'; colorBtn = '#c2410c'; textoBtn = '⏳ Estanquidad Pendiente'; disabled = 'opacity:0.8;cursor:not-allowed;';
-                } else if (sol.estado === 'aprobada') {
-                    bgBtn = '#ecfdf5'; colorBtn = '#047857'; textoBtn = '✅ Estanquidad Aprobada'; disabled = 'opacity:0.8;cursor:not-allowed;';
-                } else if (sol.estado === 'rechazada') {
-                    bgBtn = '#fef2f2'; colorBtn = '#b91c1c'; textoBtn = '❌ Rechazada · Volver a pedir';
-                }
-            }
+if (esEstacionCero) {
+    const sol = (window.APP._solicitudesEstanquidad || {})[operacionId + '_' + estId];
+    let bgBtn = '#eef2ff', colorBtn = '#4338ca', textoBtn = '🫧 Solicitar Estanquidad', disabled = false;
 
-            botonEstanquidadHTML = `
-                <button onclick="event.stopPropagation(); ${disabled ? '' : `abrirModalSolicitarEstanquidad('${operacionId}', '${estId}', '${opActual.numero || '—'}')`}" 
-                    style="background:${bgBtn};border:1px solid ${colorBtn}40;color:${colorBtn};padding:5px 12px;border-radius:8px;font-size:0.75rem;font-weight:700;font-family:inherit;${disabled}">
-                    ${textoBtn}
-                </button>
-            `;
+    if (sol) {
+        if (sol.estado === 'pendiente') {
+            bgBtn = '#fffbeb'; colorBtn = '#c2410c'; textoBtn = '⏳ Estanquidad Pendiente'; disabled = true;
+        } else if (sol.estado === 'aprobada') {
+            bgBtn = '#ecfdf5'; colorBtn = '#047857'; textoBtn = '✅ Estanquidad Aprobada'; disabled = true;
+        } else if (sol.estado === 'rechazada') {
+            bgBtn = '#fef2f2'; colorBtn = '#b91c1c'; textoBtn = '❌ Rechazada · Volver a pedir';
         }
+    }
+
+    botonEstanquidadHTML = `
+        <button ${disabled ? 'disabled' : ''} onclick="event.stopPropagation(); ${disabled ? '' : `abrirModalSolicitarEstanquidad('${operacionId}', '${estId}', '${opActual.numero || '—'}')`}" 
+            style="background:${bgBtn};border:1px solid ${colorBtn}40;color:${colorBtn};padding:5px 12px;border-radius:8px;font-size:0.75rem;font-weight:700;font-family:inherit;${disabled ? 'opacity:0.7;cursor:not-allowed;' : ''}">
+            ${textoBtn}
+        </button>
+    `;
+}
 
         html += `
             <div style="margin-bottom: 1.5rem;">
