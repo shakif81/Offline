@@ -93,6 +93,13 @@ if (rol.includes('admin') || rol.includes('supervisor')) {
         }
     }, 800);
 
+    // 🆕 Comprobar pendientes de TQC / Estanquidad al entrar
+setTimeout(() => {
+    if (typeof comprobarPendientesAlIniciar === 'function') {
+        comprobarPendientesAlIniciar();
+    }
+}, 1500); // 1.5 segundos para que la app cargue primero
+
 setTimeout(() => {
     if (typeof comprobarAlertasKanban === 'function') {
         comprobarAlertasKanban();
