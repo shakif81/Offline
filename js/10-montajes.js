@@ -341,7 +341,13 @@ if (qcEst && qcEst.estado === 'parcial') {
                 ❌ Estación Rechazada por TQC
             </div>
             ${qcEst.motivoRechazo ? `<div style="font-size:0.82rem;color:#7f1d1d;margin-top:4px;line-height:1.4;"><b>Motivo:</b> ${qcEst.motivoRechazo}</div>` : ''}
-            <div style="font-size:0.72rem;color:#991b1b;margin-top:6px;font-weight:600;">Por favor, revisa los montajes y vuelve a solicitar la estanquidad cuando esté corregido.</div>
+            <div style="font-size:0.72rem;color:#991b1b;margin-top:6px;font-weight:600;">Por favor, revisa los montajes y corrige los fallos.</div>
+            
+            <!-- 🆕 BOTÓN DE CORREGIR SOLO PARA TQC -->
+            <button onclick="event.stopPropagation(); corregirEstacionTQC('${operacionId}', '${estId}')" 
+                style="margin-top:10px;background:#ef4444;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;box-shadow:0 2px 4px rgba(239,68,68,0.2);">
+                🔧 Marcar Estación como Corregida
+            </button>
         </div>
     `;
 } else if (qcEst && qcEst.estado === 'aprobado') {
@@ -393,6 +399,60 @@ html += `
         if (typeof iniciarBadgeTick === 'function') iniciarBadgeTick();
     }, 300);
 }
+
+async function corregirEstacionTQC(operacionId, estacionId) {
+    const ok = await confirmar(
+        '¿Confirmas que has corregido todos los fallos indicados por TQC?\n\nLa estación volverá a la cola de revisión del supervisor.',
+        { titulo: '🔧 Enviar a revisión TQC', tipo: 'info', okTexto: '✅ Sí, enviar' }
+    );
+    if (!ok) return;
+
+    mostrarLoading('Actualizando estado...');
+    try {
+        const claveQC = operacionId + '_' + estacionId;
+        
+        // 1. Devolver el QC de la estación a 'pendiente'
+        await guardarFirebase('estaciones_qc', claveQC, {
+            estado: 'pendiente',
+            motivoRechazo: '',
+            revisor: '',
+            fechaUltimaRevision: null
+        });
+
+        // 2. Limpiar el estado en el historial de los montajes
+        const qcs = await cargarFirebase('estaciones_qc', true);
+        const qc = qcs[claveQC];
+        if (qc && qc.montajesQC) {
+            const historial = await cargarFirebase('historial_montajes', true);
+            for (const m of qc.montajesQC) {
+                if (m.historialId && historial[m.historialId]) {
+                    await guardarFirebase('historial_montajes', m.historialId, {
+                        qcEstado: 'pendiente',
+                        qcComentario: '',
+                        qcRevisor: '',
+                        qcFecha: null
+                    });
+                }
+            }
+        }
+
+        ocultarLoading();
+        toast('✅ Estación enviada de nuevo a TQC', '#10b981', 4000);
+        
+        // 3. Recargar la vista para que el banner desaparezca
+        if (window.APP.operacionActiva === operacionId) {
+            const modelo = window.APP.modeloActivo || 'MS3';
+            cargarMontajesOperacion(operacionId, modelo);
+        }
+
+    } catch (e) {
+        ocultarLoading();
+        console.error('❌ Error al corregir estación:', e);
+        toast('❌ Error al actualizar el estado', '#ef4444');
+    }
+}
+
+window.corregirEstacionTQC = corregirEstacionTQC;
 
 function renderTarjetaMontaje(mid, m, color, completadosIds, historial, operacionId) {
     const estaCompletado = completadosIds.has(mid);
