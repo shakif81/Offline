@@ -195,17 +195,18 @@ async function cargarMontajesOperacion(operacionId, modelo, silencioso = false) 
         container.innerHTML = '<div class="empty-state">⏳ Cargando montajes...</div>';
     }
 
-    const [montajes, estaciones, historial, cronosData, resistenciasGuardadas, materialesCatalogo, escaneosGuardados, operaciones, solicitudesEstanquidad] = await Promise.all([
-        cargarFirebase('montajes'),
-        cargarFirebase('estaciones'),
-        cargarFirebase('historial_montajes'),
-        cargarFirebase('cronos_operacion', true),
-        cargarFirebase('resistencias_montajes'),
-        cargarFirebase('materiales_catalogo', true),
-        cargarFirebase('componentes_escaneados', true),
-        cargarFirebase('operaciones'),
-        cargarFirebase('solicitudes_estanquidad', true)
-    ]);
+    const [montajes, estaciones, historial, cronosData, resistenciasGuardadas, materialesCatalogo, escaneosGuardados, operaciones, solicitudesEstanquidad, estacionesQC] = await Promise.all([
+    cargarFirebase('montajes'),
+    cargarFirebase('estaciones'),
+    cargarFirebase('historial_montajes'),
+    cargarFirebase('cronos_operacion', true),
+    cargarFirebase('resistencias_montajes'),
+    cargarFirebase('materiales_catalogo', true),
+    cargarFirebase('componentes_escaneados', true),
+    cargarFirebase('operaciones'),
+    cargarFirebase('solicitudes_estanquidad', true),
+    cargarFirebase('estaciones_qc', true) // 🆕
+]);
 
     const opActual = operaciones[operacionId] || {};
     window.APP._solicitudesEstanquidad = solicitudesEstanquidad || {};
@@ -329,9 +330,35 @@ if (esEstacionCero) {
     `;
 }
 
-        html += `
-            <div style="margin-bottom: 1.5rem;">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:${color.bg};border-radius:10px;border-left:4px solid ${color.dot};margin-bottom:0.75rem;flex-wrap:wrap;gap:8px;">
+        // 🆕 Comprobar si la estación tiene un QC global
+const qcEst = estacionesQC[operacionId + '_' + estId];
+let bannerQCHTML = '';
+
+if (qcEst && qcEst.estado === 'parcial') {
+    bannerQCHTML = `
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #ef4444;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-weight:800;color:#b91c1c;font-size:0.9rem;display:flex;align-items:center;gap:6px;">
+                ❌ Estación Rechazada por TQC
+            </div>
+            ${qcEst.motivoRechazo ? `<div style="font-size:0.82rem;color:#7f1d1d;margin-top:4px;line-height:1.4;"><b>Motivo:</b> ${qcEst.motivoRechazo}</div>` : ''}
+            <div style="font-size:0.72rem;color:#991b1b;margin-top:6px;font-weight:600;">Por favor, revisa los montajes y vuelve a solicitar la estanquidad cuando esté corregido.</div>
+        </div>
+    `;
+} else if (qcEst && qcEst.estado === 'aprobado') {
+    bannerQCHTML = `
+        <div style="background:#f0fdf4;border:1px solid #a7f3d0;border-left:4px solid #10b981;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-weight:800;color:#047857;font-size:0.9rem;display:flex;align-items:center;gap:6px;">
+                ✅ Estación Aprobada por TQC
+            </div>
+            <div style="font-size:0.82rem;color:#065f46;margin-top:4px;">Todos los montajes de esta estación han sido validados correctamente.</div>
+        </div>
+    `;
+}
+
+html += `
+    <div style="margin-bottom: 1.5rem;">
+        ${bannerQCHTML} <!-- 🆕 AQUÍ PINTAMOS EL AVISO -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:${color.bg};border-radius:10px;border-left:4px solid ${color.dot};margin-bottom:0.75rem;flex-wrap:wrap;gap:8px;"> 
                     <div style="display:flex;align-items:center;gap:10px;">
                         <span style="width:8px;height:8px;border-radius:50%;background:${color.dot};flex-shrink:0;"></span>
                         <div>
