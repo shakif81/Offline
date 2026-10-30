@@ -297,11 +297,9 @@ function renderModalRevisionQC() {
 
     const { data: qc } = window.APP.tqcActual;
     const montajes = qc.montajesQC || [];
-
-    const pendientes = montajes.filter(m => m.estado === 'pendiente').length;
-    const aprobados = montajes.filter(m => m.estado === 'aprobado').length;
-    const rechazados = montajes.filter(m => m.estado === 'rechazado').length;
-    const todosRevisados = pendientes === 0;
+    
+    // Determinamos si ya está revisada
+    const yaRevisada = qc.estado === 'aprobado' || qc.estado === 'parcial';
 
     const modal = document.createElement('div');
     modal.id = 'modalRevisionQC';
@@ -313,7 +311,7 @@ function renderModalRevisionQC() {
             <div style="display:flex;align-items:center;gap:12px;min-width:0;">
                 <span style="font-size:1.6rem;">🔍</span>
                 <div style="min-width:0;">
-                    <div style="font-weight:800;font-size:1rem;">Revisión QC</div>
+                    <div style="font-weight:800;font-size:1rem;">Revisión Global QC</div>
                     <div style="font-size:0.75rem;opacity:0.9;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                         ${qc.estacionNombre} · Op. ${qc.numeroOperacion} · ${qc.modelo}
                     </div>
@@ -322,40 +320,165 @@ function renderModalRevisionQC() {
             <button onclick="cerrarModal('modalRevisionQC')" style="background:rgba(255,255,255,0.2);border:none;color:white;width:38px;height:38px;border-radius:10px;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
         </div>
 
-        <!-- RESUMEN -->
-        <div style="padding:12px 20px;background:#f8fafc;border-bottom:1px solid #e5e7eb;display:flex;gap:12px;flex-wrap:wrap;font-size:0.78rem;font-weight:700;flex-shrink:0;">
-            <span style="color:#1e293b;">📦 ${montajes.length} montaje${montajes.length !== 1 ? 's' : ''}</span>
-            ${pendientes > 0 ? `<span style="color:#c2410c;">⏳ ${pendientes} pendiente${pendientes !== 1 ? 's' : ''}</span>` : ''}
-            ${aprobados > 0 ? `<span style="color:#047857;">✅ ${aprobados} aprobado${aprobados !== 1 ? 's' : ''}</span>` : ''}
-            ${rechazados > 0 ? `<span style="color:#b91c1c;">❌ ${rechazados} rechazado${rechazados !== 1 ? 's' : ''}</span>` : ''}
+        <!-- INFO -->
+        <div style="padding:12px 20px;background:#f8fafc;border-bottom:1px solid #e5e7eb;display:flex;gap:12px;flex-wrap:wrap;font-size:0.8rem;font-weight:700;flex-shrink:0;">
+            <span style="color:#1e293b;">📦 ${montajes.length} montajes en la estación</span>
+            ${yaRevisada ? `<span style="color:${qc.estado === 'aprobado' ? '#047857' : '#b91c1c'};">${qc.estado === 'aprobado' ? '✅ Estación Aprobada' : '❌ Estación Rechazada'}</span>` : `<span style="color:#c2410c;">⏳ Pendiente de revisión</span>`}
         </div>
 
-        <!-- LISTA DE MONTAJES -->
+        <!-- LISTA INFORMATIVA (Solo lectura) -->
         <div style="flex:1;overflow-y:auto;padding:16px 20px;background:#fafafa;">
-            <div style="max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:12px;">
-                ${montajes.map((m, idx) => renderTarjetaMontajeQC(m, idx)).join('')}
+            <div style="max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:8px;">
+                ${montajes.map((m, idx) => {
+                    // Colores según el estado en el que quedó
+                    let icono = '⏳';
+                    let color = '#64748b';
+                    if (m.estado === 'aprobado') { icono = '✅'; color = '#047857'; }
+                    if (m.estado === 'rechazado') { icono = '❌'; color = '#b91c1c'; }
+                    
+                    return `
+                        <div style="background:white;border:1px solid #e5e7eb;border-left:3px solid ${color};border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;">
+                            <span style="font-size:1.2rem;">${icono}</span>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-weight:600;font-size:0.9rem;color:#1e293b;">${m.orden}. ${m.montajeNombre}</div>
+                                <div style="font-size:0.75rem;color:#64748b;margin-top:2px;">👤 Operario: ${m.operario}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         </div>
 
-        <!-- PIE CON ACCIONES -->
-        <div style="padding:14px 20px;border-top:1px solid #e5e7eb;background:white;display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;justify-content:flex-end;">
-            <button onclick="cerrarModal('modalRevisionQC')" style="padding:12px 20px;border:1px solid #e5e7eb;border-radius:10px;background:white;color:#64748b;font-weight:700;cursor:pointer;font-size:0.85rem;font-family:inherit;">
-                Cancelar
-            </button>
-            ${todosRevisados ? `
-                <button onclick="guardarRevisionQC()" style="padding:12px 24px;border:none;border-radius:10px;background:#10b981;color:white;font-weight:700;cursor:pointer;font-size:0.9rem;font-family:inherit;display:flex;align-items:center;gap:6px;">
-                    💾 Guardar revisión
-                </button>
-            ` : `
-                <div style="padding:12px 20px;color:#c2410c;font-weight:700;font-size:0.85rem;display:flex;align-items:center;">
-                    ⏳ Faltan ${pendientes} por revisar
+        <!-- PIE CON ACCIONES GLOBALES -->
+        <div style="padding:14px 20px;border-top:1px solid #e5e7eb;background:white;flex-shrink:0;display:flex;flex-direction:column;gap:12px;">
+            
+            ${!yaRevisada ? `
+                <div>
+                    <label style="display:block;font-size:0.8rem;font-weight:700;color:#475569;margin-bottom:6px;">Motivo (Opcional si apruebas, Obligatorio si rechazas):</label>
+                    <textarea id="tqcMotivoGlobal" rows="2" placeholder="Ej: Faltan aprietes en la parte inferior..." style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:0.85rem;font-family:inherit;resize:none;"></textarea>
                 </div>
+                <div style="display:flex;gap:10px;">
+                    <button onclick="procesarTQCGlobal('aprobado')" style="flex:1;padding:12px;border:none;border-radius:10px;background:#10b981;color:white;font-weight:700;cursor:pointer;font-size:0.9rem;font-family:inherit;">✅ Aprobar Estación</button>
+                    <button onclick="procesarTQCGlobal('rechazado')" style="flex:1;padding:12px;border:none;border-radius:10px;background:#ef4444;color:white;font-weight:700;cursor:pointer;font-size:0.9rem;font-family:inherit;">❌ Rechazar Estación</button>
+                </div>
+            ` : `
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:0.85rem;font-weight:600;color:#64748b;">Revisado por: ${qc.revisor || 'Admin'}</div>
+                    <button onclick="marcarTQCPendienteGlobal()" style="padding:8px 16px;border:1px solid #cbd5e1;border-radius:8px;background:white;color:#64748b;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;">↺ Deshacer revisión</button>
+                </div>
+                ${qc.motivoRechazo ? `<div style="font-size:0.8rem;background:#fef2f2;padding:8px 12px;border-radius:8px;color:#b91c1c;border-left:3px solid #ef4444;"><b>Motivo:</b> ${qc.motivoRechazo}</div>` : ''}
             `}
         </div>
     `;
 
     document.body.appendChild(modal);
     document.body.style.overflow = 'hidden';
+}
+
+async function procesarTQCGlobal(nuevoEstado) {
+    const { clave, data: qc } = window.APP.tqcActual;
+    const motivo = (document.getElementById('tqcMotivoGlobal')?.value || '').trim();
+
+    if (nuevoEstado === 'rechazado' && !motivo) {
+        toast('⚠️ Escribe el motivo del rechazo', '#f59e0b');
+        return;
+    }
+
+    const ok = await confirmar(
+        `¿Estás seguro de ${nuevoEstado === 'aprobado' ? 'APROBAR' : 'RECHAZAR'} toda la estación?`,
+        { titulo: 'Confirmar revisión', tipo: nuevoEstado === 'aprobado' ? 'success' : 'danger' }
+    );
+    if (!ok) return;
+
+    mostrarLoading('Guardando revisión global...');
+    try {
+        // 1. Actualizar el documento global de la estación (estaciones_qc)
+        qc.estado = nuevoEstado === 'aprobado' ? 'aprobado' : 'parcial';
+        qc.revisor = window.APP.operario?.nombre || 'Admin';
+        qc.fechaUltimaRevision = new Date().toISOString();
+        qc.motivoRechazo = motivo;
+
+        // Actualizamos el estado de cada montaje dentro del array del QC
+        qc.montajesQC.forEach(m => {
+            m.estado = nuevoEstado;
+            m.motivoRechazo = motivo;
+            m.revisadoPor = qc.revisor;
+            m.fechaRevision = qc.fechaUltimaRevision;
+        });
+
+        await guardarFirebase('estaciones_qc', clave, qc);
+
+        // 2. Actualizar todos los montajes en el historial (historial_montajes)
+        const historial = await cargarFirebase('historial_montajes', true);
+        
+        for (const m of qc.montajesQC) {
+            const histId = m.historialId;
+            if (!histId || !historial[histId]) continue;
+
+            const h = historial[histId];
+            await guardarFirebase('historial_montajes', histId, {
+                qcEstado: nuevoEstado,
+                qcComentario: motivo,
+                qcRevisor: qc.revisor,
+                qcFecha: qc.fechaUltimaRevision,
+                qcReenvios: nuevoEstado === 'rechazado' ? (h.qcReenvios || 0) + 1 : (h.qcReenvios || 0),
+                notificacionVista: false
+            });
+        }
+
+        ocultarLoading();
+        toast(`✅ Estación ${nuevoEstado === 'aprobado' ? 'Aprobada' : 'Rechazada'} correctamente`, nuevoEstado === 'aprobado' ? '#10b981' : '#ef4444');
+        cerrarModal('modalRevisionQC');
+        cargarTQC(); // Recargar la lista principal
+
+    } catch (e) {
+        ocultarLoading();
+        console.error(e);
+        toast('❌ Error al guardar la revisión', '#ef4444');
+    }
+}
+
+async function marcarTQCPendienteGlobal() {
+    const { clave, data: qc } = window.APP.tqcActual;
+    const ok = await confirmar('¿Volver a marcar la estación como pendiente?', { tipo: 'warning' });
+    if (!ok) return;
+
+    mostrarLoading('Actualizando...');
+    try {
+        qc.estado = 'pendiente';
+        qc.revisor = '';
+        qc.fechaUltimaRevision = null;
+        qc.motivoRechazo = '';
+
+        qc.montajesQC.forEach(m => {
+            m.estado = 'pendiente';
+            m.motivoRechazo = '';
+            m.revisadoPor = '';
+            m.fechaRevision = null;
+        });
+
+        await guardarFirebase('estaciones_qc', clave, qc);
+
+        const historial = await cargarFirebase('historial_montajes', true);
+        for (const m of qc.montajesQC) {
+            if (m.historialId && historial[m.historialId]) {
+                await guardarFirebase('historial_montajes', m.historialId, {
+                    qcEstado: 'pendiente',
+                    qcComentario: '',
+                    qcRevisor: '',
+                    qcFecha: null
+                });
+            }
+        }
+        
+        ocultarLoading();
+        toast('Estación vuelta a pendiente', '#f59e0b');
+        cerrarModal('modalRevisionQC');
+        cargarTQC();
+    } catch (e) {
+        ocultarLoading();
+        toast('Error al actualizar', '#ef4444');
+    }
 }
 
 function renderTarjetaMontajeQC(m, idx) {
