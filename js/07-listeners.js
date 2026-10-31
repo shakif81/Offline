@@ -427,11 +427,10 @@ _recargarCacheOpsEst();
 setInterval(_recargarCacheOpsEst, 30000);
 
 db.collection('historial_montajes').onSnapshot(snap => {
+    return;
     if (!window.APP.operario) return;
 
-    const rol = (window.APP.operario.puesto || '').toLowerCase();
-    if (!rol.includes('admin') && !rol.includes('supervisor')) return;
-
+    
     snap.docChanges().forEach(change => {
         if (change.type !== 'modified') return;
 
