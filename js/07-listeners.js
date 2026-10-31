@@ -298,6 +298,8 @@ db.collection('conversaciones').onSnapshot(snap => {
 });
 
 db.collection('historial_montajes').onSnapshot(snap => {
+    return;
+    
     if (!window.APP.operario) return;
 
     const rol = (window.APP.operario.puesto || '').toLowerCase();
