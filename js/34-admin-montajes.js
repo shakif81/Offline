@@ -346,7 +346,8 @@ async function guardarMontajeAdmin() {
     const modelo = est.modelo || 'MS3';
 
     const rec = window.APP.adminMontajeActual;
-
+// Convertir herramientas a string (solo IDs, separados por ||)
+const herramientasStr = rec.herramientas.map(h => h.id).join('||');
     const tornilleriaStr = rec.tornilleria.map(t => `${t.ref}=${t.cantidad}`).join('||');
 
     const materialesStr = rec.materiales.map(m =>
@@ -835,27 +836,28 @@ async function prepararSelectDependenciaMontaje(idActual) {
 /* ═══════════════════════════════════════════════════════════
    HERRAMIENTAS MANUALES EN MONTAJES
    ═══════════════════════════════════════════════════════════ */
-
 function añadirHerramientaMontaje() {
     const sel = document.getElementById('adminMontajeHerrSelector');
-    const inp = document.getElementById('adminMontajeHerrCantidad');
     if (!sel || !sel.value) { toast('⚠️ Selecciona una herramienta', '#f59e0b'); return; }
 
     const id = sel.value;
     const opt = sel.options[sel.selectedIndex];
     const nombre = opt.dataset.nombre || id;
-    const cantidad = parseInt(inp.value) || 1;
+    const codigo = opt.dataset.codigo || '';
+    const numero = opt.dataset.numero || '';
 
     const rec = window.APP.adminMontajeActual;
-    const existente = rec.herramientas.find(h => h.id === id);
     
-    if (existente) {
-        existente.cantidad += cantidad;
-    } else {
-        rec.herramientas.push({ id, nombre, cantidad });
+    // Evitar duplicados: si la herramienta ya está en la lista, no hacer nada
+    if (rec.herramientas.find(h => h.id === id)) {
+        toast('⚠️ Esta herramienta ya está asignada', '#f59e0b');
+        return;
     }
 
-    sel.value = ''; inp.value = '1';
+    // Guardamos los datos sin cantidad
+    rec.herramientas.push({ id, nombre, codigo, numero });
+
+    sel.value = '';
     renderHerramientasMontaje();
     toast('✅ Herramienta añadida', '#10b981', 1500);
 }
@@ -879,11 +881,12 @@ function renderHerramientasMontaje() {
         <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
             <span style="font-size:1.1rem;">🔧</span>
             <div style="flex:1;min-width:0;">
-                <div style="font-weight:600;font-size:0.85rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.nombre}</div>
+                <div style="font-weight:600;font-size:0.85rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    ${h.nombre}
+                    ${h.numero ? `<span style="background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:6px;font-size:0.7rem;margin-left:4px;">#${h.numero}</span>` : ''}
+                </div>
+                <div style="font-size:0.72rem;color:#64748b;font-family:monospace;margin-top:2px;">${h.codigo}</div>
             </div>
-            <input type="number" value="${h.cantidad}" min="1"
-                onchange="cambiarCantidadHerramienta(${idx}, this.value)"
-                style="width:70px;padding:6px 8px;border-radius:6px;border:1px solid #cbd5e1;font-size:0.8rem;text-align:center;font-weight:700;color:#0369a1;font-family:inherit;">
             <button type="button" onclick="quitarHerramientaMontaje(${idx})"
                 style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#b91c1c;font-size:0.9rem;display:flex;align-items:center;justify-content:center;"
                 title="Quitar">✕</button>
@@ -891,15 +894,4 @@ function renderHerramientasMontaje() {
     `).join('');
 }
 
-function cambiarCantidadHerramienta(idx, valor) {
-    const rec = window.APP.adminMontajeActual;
-    if (!rec.herramientas[idx]) return;
-    rec.herramientas[idx].cantidad = Math.max(1, parseInt(valor) || 1);
-}
 
-function quitarHerramientaMontaje(idx) {
-    const rec = window.APP.adminMontajeActual;
-    if (!rec.herramientas[idx]) return;
-    rec.herramientas.splice(idx, 1);
-    renderHerramientasMontaje();
-}
