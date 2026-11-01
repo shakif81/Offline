@@ -175,7 +175,8 @@ async function editarMontajeAdmin(id) {
     window.APP.adminMontajeActual = {
         tornilleria: [],
         materiales: [],
-        piezas: []
+        piezas: [],
+        herramientas: []
     };
 
     if (mon.tornilleria) {
@@ -237,17 +238,18 @@ async function editarMontajeAdmin(id) {
         });
     }
 
-    // 🆕 Parsear herramientas
+// 🆕 Añade este bloque para leer las herramientas guardadas
 if (mon.herramientas) {
     const catHerr = await cargarFirebase('herramientas');
     mon.herramientas.split('||').forEach(item => {
-        const [herrId, cant] = item.trim().split('=');
-        if (!herrId) return;
-        const h = catHerr[herrId];
+        const idHerr = item.trim();
+        if (!idHerr) return;
+        const h = catHerr[idHerr];
         window.APP.adminMontajeActual.herramientas.push({
-            id: herrId,
-            nombre: h ? h.nombre : herrId,
-            cantidad: parseInt(cant) || 1
+            id: idHerr,
+            nombre: h ? h.nombre : idHerr,
+            codigo: h ? h.codigo : '',
+            numero: h ? h.numero : ''
         });
     });
 }
@@ -848,13 +850,15 @@ function añadirHerramientaMontaje() {
 
     const rec = window.APP.adminMontajeActual;
     
-    // Evitar duplicados: si la herramienta ya está en la lista, no hacer nada
+    // 🆕 SALVAVIDAS: Si no existe el array, lo creamos
+    if (!rec.herramientas) rec.herramientas = [];
+    
+    // Evitar duplicados
     if (rec.herramientas.find(h => h.id === id)) {
         toast('⚠️ Esta herramienta ya está asignada', '#f59e0b');
         return;
     }
 
-    // Guardamos los datos sin cantidad
     rec.herramientas.push({ id, nombre, codigo, numero });
 
     sel.value = '';
