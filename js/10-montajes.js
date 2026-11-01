@@ -795,8 +795,10 @@ async function mostrarDetalleMontaje(montajeId) {
                     ` : ''}
                 </div>
 
-${m.herramientas ? renderSeccionHerramientasManuales(m.herramientas, catalogoHerramientas) : ''}
-${m.paresRequeridos ? renderSeccionHerramientas(m.paresRequeridos) : ''}
+${m.herramientas && m.herramientas.trim() !== '' 
+    ? renderSeccionHerramientasManuales(m.herramientas, catalogoHerramientas) 
+    : (m.paresRequeridos ? renderSeccionHerramientas(m.paresRequeridos) : '')
+}
 ${m.piezasKanban ? renderSeccionPiezas(m.piezasKanban, piezasKanban) : ''}
 ${m.materialesNecesarios ? renderSeccionMateriales(m.materialesNecesarios, catalogoMateriales) : ''}
 ${m.tornilleria ? renderSeccionTornilleria(m.tornilleria, catalogoTornilleria) : ''}
