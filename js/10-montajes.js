@@ -863,9 +863,7 @@ function renderSeccionHerramientasManuales(herrStr, catalogo) {
                             <div style="flex:1;min-width:0;">
                                 <div style="font-weight:600;font-size:0.85rem;color:#1e293b;">
                                     ${h.nombre || 'Herramienta'}
-                                    ${h.numero ? `<span style="background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:6px;font-size:0.7rem;margin-left:4px;">#${h.numero}</span>` : ''}
                                 </div>
-                                ${h.codigo ? `<div style="font-size:0.72rem;color:#64748b;font-family:monospace;margin-top:2px;">${h.codigo}</div>` : ''}
                             </div>
                         </div>
                     `;
@@ -874,7 +872,6 @@ function renderSeccionHerramientasManuales(herrStr, catalogo) {
         </div>
     `;
 }
-
 function renderSeccionPiezas(piezasStr, catalogo) {
     const items = piezasStr.split(',').filter(p => p.trim());
     if (!items.length) return '';
