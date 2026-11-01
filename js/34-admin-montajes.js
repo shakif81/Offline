@@ -582,17 +582,30 @@ if (selTorn) {
             selPieza.appendChild(opt);
         });
     }
-    // 5. SELECTOR DE HERRAMIENTAS
+// 5. SELECTOR DE HERRAMIENTAS (Filtrado sin duplicados y sin códigos)
 const herramientasCat = await cargarFirebase('herramientas');
 const selHerr = document.getElementById('adminMontajeHerrSelector');
 if (selHerr) {
     selHerr.innerHTML = '<option value="">— Selecciona herramienta —</option>';
+    
+    // Ordenamos alfabéticamente
     const arrHerr = Object.entries(herramientasCat).sort((a, b) => (a[1].nombre || '').localeCompare(b[1].nombre || ''));
+    
+    // Usamos un Set para evitar nombres duplicados (ej: 3 llaves de 32Nm)
+    const nombresAgregados = new Set();
+
     arrHerr.forEach(([id, h]) => {
+        const nombreBase = h.nombre || id;
+        
+        // Si ya hemos añadido este nombre (ej: "Dinamométrica 32Nm"), lo saltamos
+        if (nombresAgregados.has(nombreBase)) return;
+        nombresAgregados.add(nombreBase);
+
         const opt = document.createElement('option');
         opt.value = id;
-        opt.dataset.nombre = h.nombre || id;
-        opt.textContent = `🔧 ${h.nombre || 'Sin nombre'} (${h.codigo || 'Sin código'})`;
+        opt.dataset.nombre = nombreBase;
+        // Mostramos solo el nombre, sin el código
+        opt.textContent = `🔧 ${nombreBase}`;
         selHerr.appendChild(opt);
     });
 }
@@ -845,27 +858,21 @@ function añadirHerramientaMontaje() {
     const id = sel.value;
     const opt = sel.options[sel.selectedIndex];
     const nombre = opt.dataset.nombre || id;
-    const codigo = opt.dataset.codigo || '';
-    const numero = opt.dataset.numero || '';
 
     const rec = window.APP.adminMontajeActual;
-    
-    // 🆕 SALVAVIDAS: Si no existe el array, lo creamos
     if (!rec.herramientas) rec.herramientas = [];
     
-    // Evitar duplicados
-    if (rec.herramientas.find(h => h.id === id)) {
+    if (rec.herramientas.find(h => h.nombre === nombre)) {
         toast('⚠️ Esta herramienta ya está asignada', '#f59e0b');
         return;
     }
 
-    rec.herramientas.push({ id, nombre, codigo, numero });
+    rec.herramientas.push({ id, nombre }); // Solo guardamos ID y nombre
 
     sel.value = '';
     renderHerramientasMontaje();
     toast('✅ Herramienta añadida', '#10b981', 1500);
 }
-
 function renderHerramientasMontaje() {
     const cont = document.getElementById('adminMontajeHerrLista');
     if (!cont) return;
@@ -882,20 +889,19 @@ function renderHerramientasMontaje() {
     }
 
     cont.innerHTML = items.map((h, idx) => `
-        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
-            <span style="font-size:1.1rem;">🔧</span>
-            <div style="flex:1;min-width:0;">
-                <div style="font-weight:600;font-size:0.85rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                    ${h.nombre}
-                    ${h.numero ? `<span style="background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:6px;font-size:0.7rem;margin-left:4px;">#${h.numero}</span>` : ''}
-                </div>
-                <div style="font-size:0.72rem;color:#64748b;font-family:monospace;margin-top:2px;">${h.codigo}</div>
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.1rem;">🔧</span>
+        <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:0.85rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                ${h.nombre}
             </div>
-            <button type="button" onclick="quitarHerramientaMontaje(${idx})"
-                style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#b91c1c;font-size:0.9rem;display:flex;align-items:center;justify-content:center;"
-                title="Quitar">✕</button>
         </div>
-    `).join('');
+        <button type="button" onclick="quitarHerramientaMontaje(${idx})"
+            style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#b91c1c;font-size:0.9rem;display:flex;align-items:center;justify-content:center;">
+            ✕
+        </button>
+    </div>
+`).join('');
 }
 
 
