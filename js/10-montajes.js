@@ -857,6 +857,7 @@ function renderSeccionHerramientasManuales(herrStr, catalogo) {
             <div style="display:flex;flex-direction:column;gap:8px;">
                 ${items.map(id => {
                     const h = catalogo[id] || {};
+                    // 🆕 Solo mostramos el nombre (que ya incluye el par)
                     return `
                         <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-left:3px solid #0ea5e9;">
                             <span style="font-size:1.2rem;">🔧</span>
