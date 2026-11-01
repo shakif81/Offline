@@ -794,7 +794,8 @@ async function mostrarDetalleMontaje(montajeId) {
                     ` : ''}
                 </div>
 
-     ${m.piezasKanban ? renderSeccionPiezas(m.piezasKanban, piezasKanban) : ''}
+${m.paresRequeridos ? renderSeccionHerramientas(m.paresRequeridos) : ''}
+${m.piezasKanban ? renderSeccionPiezas(m.piezasKanban, piezasKanban) : ''}
 ${m.materialesNecesarios ? renderSeccionMateriales(m.materialesNecesarios, catalogoMateriales) : ''}
 ${m.tornilleria ? renderSeccionTornilleria(m.tornilleria, catalogoTornilleria) : ''}
 
@@ -805,6 +806,37 @@ ${m.tornilleria ? renderSeccionTornilleria(m.tornilleria, catalogoTornilleria) :
 
     document.body.appendChild(modal);
     document.body.style.overflow = 'hidden';
+}
+
+function renderSeccionHerramientas(paresRequeridos) {
+    const pares = String(paresRequeridos).split(',').map(p => p.trim()).filter(p => p);
+    if (!pares.length) return '';
+
+    return `
+        <div style="background:white;border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:1rem;border:1px solid #e5e7eb;border-left:4px solid #0ea5e9;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                <span style="font-size:1.1rem;">🔧</span>
+                <span style="font-weight:700;font-size:0.95rem;color:#0369a1;">Herramientas necesarias</span>
+                <span style="background:#f0f9ff;color:#0369a1;padding:2px 10px;border-radius:99px;font-size:0.7rem;font-weight:700;margin-left:auto;">${pares.length}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                ${pares.map(par => `
+                    <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-left:3px solid #0ea5e9;">
+                        <span style="font-size:1.2rem;">🔧</span>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:600;font-size:0.85rem;color:#1e293b;">
+                                Llave Dinamométrica
+                            </div>
+                            <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Apriete requerido</div>
+                        </div>
+                        <div style="background:#e0f2fe;color:#0369a1;padding:3px 10px;border-radius:99px;font-size:0.75rem;font-weight:700;flex-shrink:0;">
+                            💪 ${par} Nm
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
 }
 
 function renderSeccionPiezas(piezasStr, catalogo) {
