@@ -702,6 +702,26 @@
                 </div>
             </details>
 
+
+          <!-- ══════════════════════════════════════════════════════════
+     SECCIÓN: HERRAMIENTAS MANUALES
+     ══════════════════════════════════════════════════════════ -->
+<details style="background:white;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:12px;overflow:hidden;">
+    <summary style="padding:12px 16px;cursor:pointer;font-weight:700;color:#1e293b;background:#f8fafc;font-size:0.9rem;user-select:none;">
+        🔧 Herramientas específicas <span id="adminMontajeHerrCount" style="color:#0ea5e9;font-weight:600;font-size:0.8rem;">(0)</span>
+    </summary>
+    <div style="padding:16px;">
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <select id="adminMontajeHerrSelector" style="flex:1;min-width:180px;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+                <option value="">— Selecciona herramienta —</option>
+            </select>
+            <input type="number" id="adminMontajeHerrCantidad" placeholder="Cant." value="1" min="1" style="width:80px;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;">
+            <button type="button" onclick="añadirHerramientaMontaje()" class="btn btn-primary btn-sm" style="padding:8px 14px;">➕ Añadir</button>
+        </div>
+        <div id="adminMontajeHerrLista" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+</details>
+
 <details style="background:white;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:12px;overflow:hidden;">
     <summary style="padding:12px 16px;cursor:pointer;font-weight:700;color:#1e293b;background:#f8fafc;font-size:0.9rem;user-select:none;">
         🔧 Pares de apriete (opcional)
