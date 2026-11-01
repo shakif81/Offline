@@ -727,11 +727,12 @@ async function mostrarDetalleMontaje(montajeId) {
         }
     }
 
-    const [piezasKanban, catalogoMateriales, catalogoTornilleria] = await Promise.all([
-        cargarFirebase('piezas_kanban'),
-        cargarFirebase('materiales_catalogo'),
-        cargarFirebase('tornilleria_catalogo')
-    ]);
+    const [piezasKanban, catalogoMateriales, catalogoTornilleria, catalogoHerramientas] = await Promise.all([
+    cargarFirebase('piezas_kanban'),
+    cargarFirebase('materiales_catalogo'),
+    cargarFirebase('tornilleria_catalogo'),
+    cargarFirebase('herramientas') // 🆕 Añadimos esto
+]);
 
     const esMS3 = (m.modelo || 'MS3') === 'MS3';
     const colorModelo = {
@@ -794,6 +795,7 @@ async function mostrarDetalleMontaje(montajeId) {
                     ` : ''}
                 </div>
 
+${m.herramientas ? renderSeccionHerramientasManuales(m.herramientas, catalogoHerramientas) : ''}
 ${m.paresRequeridos ? renderSeccionHerramientas(m.paresRequeridos) : ''}
 ${m.piezasKanban ? renderSeccionPiezas(m.piezasKanban, piezasKanban) : ''}
 ${m.materialesNecesarios ? renderSeccionMateriales(m.materialesNecesarios, catalogoMateriales) : ''}
@@ -834,6 +836,38 @@ function renderSeccionHerramientas(paresRequeridos) {
                         </div>
                     </div>
                 `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderSeccionHerramientasManuales(herrStr, catalogo) {
+    const items = herrStr.split('||').filter(p => p.trim());
+    if (!items.length) return '';
+
+    return `
+        <div style="background:white;border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:1rem;border:1px solid #e5e7eb;border-left:4px solid #0ea5e9;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                <span style="font-size:1.1rem;">🔧</span>
+                <span style="font-weight:700;font-size:0.95rem;color:#0369a1;">Herramientas requeridas</span>
+                <span style="background:#f0f9ff;color:#0369a1;padding:2px 10px;border-radius:99px;font-size:0.7rem;font-weight:700;margin-left:auto;">${items.length}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                ${items.map(id => {
+                    const h = catalogo[id] || {};
+                    return `
+                        <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-left:3px solid #0ea5e9;">
+                            <span style="font-size:1.2rem;">🔧</span>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-weight:600;font-size:0.85rem;color:#1e293b;">
+                                    ${h.nombre || 'Herramienta'}
+                                    ${h.numero ? `<span style="background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:6px;font-size:0.7rem;margin-left:4px;">#${h.numero}</span>` : ''}
+                                </div>
+                                ${h.codigo ? `<div style="font-size:0.72rem;color:#64748b;font-family:monospace;margin-top:2px;">${h.codigo}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         </div>
     `;
