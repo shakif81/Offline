@@ -2,7 +2,8 @@ window.APP.adminMontajeActual = {
     tornilleria: [],
     materiales: [],
     piezas: [],
-    pasos: []
+    pasos: [],
+    herramientas: [] // 🆕 Añadimos esto
 };
 
 async function cargarAdminMontajes() {
@@ -160,7 +161,8 @@ renderTornilleriaMontaje();
 renderMaterialesMontaje();
 renderPiezasMontaje();
 renderPasosMontaje();
-
+renderHerramientasMontaje();
+    
     document.getElementById('adminMontajesForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
     setTimeout(() => document.getElementById('adminMontajeNombre').focus(), 300);
 }
@@ -235,6 +237,22 @@ async function editarMontajeAdmin(id) {
         });
     }
 
+    // 🆕 Parsear herramientas
+if (mon.herramientas) {
+    const catHerr = await cargarFirebase('herramientas');
+    mon.herramientas.split('||').forEach(item => {
+        const [herrId, cant] = item.trim().split('=');
+        if (!herrId) return;
+        const h = catHerr[herrId];
+        window.APP.adminMontajeActual.herramientas.push({
+            id: herrId,
+            nombre: h ? h.nombre : herrId,
+            cantidad: parseInt(cant) || 1
+        });
+    });
+}
+
+
 if (mon.pasos && Array.isArray(mon.pasos)) {
     window.APP.adminMontajeActual.pasos = mon.pasos.map(p => ({
         id: p.id || 'paso_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
@@ -275,6 +293,9 @@ if (mon.pasos && Array.isArray(mon.pasos)) {
 renderMaterialesMontaje();
 renderPiezasMontaje();
 renderPasosMontaje();
+    // Y abajo, junto a los otros renders:
+renderHerramientasMontaje();
+    
 
     document.getElementById('adminMontajesForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -357,6 +378,7 @@ const data = {
     puntoId: estacionId,
     modelo: modelo,
     paresRequeridos: pares,
+    herramientas: herramientasStr,
     tornilleria: tornilleriaStr,
     materialesNecesarios: materialesStr,
     piezasKanban: piezasStr,
@@ -557,6 +579,20 @@ if (selTorn) {
             selPieza.appendChild(opt);
         });
     }
+    // 5. SELECTOR DE HERRAMIENTAS
+const herramientasCat = await cargarFirebase('herramientas');
+const selHerr = document.getElementById('adminMontajeHerrSelector');
+if (selHerr) {
+    selHerr.innerHTML = '<option value="">— Selecciona herramienta —</option>';
+    const arrHerr = Object.entries(herramientasCat).sort((a, b) => (a[1].nombre || '').localeCompare(b[1].nombre || ''));
+    arrHerr.forEach(([id, h]) => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.dataset.nombre = h.nombre || id;
+        opt.textContent = `🔧 ${h.nombre || 'Sin nombre'} (${h.codigo || 'Sin código'})`;
+        selHerr.appendChild(opt);
+    });
+}
 }
 
 function onCambioEstacionMontaje() {
@@ -794,4 +830,76 @@ async function prepararSelectDependenciaMontaje(idActual) {
 
     const ayuda = lista.parentElement?.querySelector('small');
     if (ayuda) ayuda.textContent = 'Si este montaje solo se puede hacer después de otro. El operario recibe un aviso cuando ese montaje termina.';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HERRAMIENTAS MANUALES EN MONTAJES
+   ═══════════════════════════════════════════════════════════ */
+
+function añadirHerramientaMontaje() {
+    const sel = document.getElementById('adminMontajeHerrSelector');
+    const inp = document.getElementById('adminMontajeHerrCantidad');
+    if (!sel || !sel.value) { toast('⚠️ Selecciona una herramienta', '#f59e0b'); return; }
+
+    const id = sel.value;
+    const opt = sel.options[sel.selectedIndex];
+    const nombre = opt.dataset.nombre || id;
+    const cantidad = parseInt(inp.value) || 1;
+
+    const rec = window.APP.adminMontajeActual;
+    const existente = rec.herramientas.find(h => h.id === id);
+    
+    if (existente) {
+        existente.cantidad += cantidad;
+    } else {
+        rec.herramientas.push({ id, nombre, cantidad });
+    }
+
+    sel.value = ''; inp.value = '1';
+    renderHerramientasMontaje();
+    toast('✅ Herramienta añadida', '#10b981', 1500);
+}
+
+function renderHerramientasMontaje() {
+    const cont = document.getElementById('adminMontajeHerrLista');
+    if (!cont) return;
+
+    const rec = window.APP.adminMontajeActual || { herramientas: [] };
+    const items = rec.herramientas || [];
+
+    const elCount = document.getElementById('adminMontajeHerrCount');
+    if (elCount) elCount.textContent = `(${items.length})`;
+
+    if (!items.length) {
+        cont.innerHTML = `<div style="text-align:center;padding:1rem;color:#94a3b8;font-size:0.8rem;background:#f8fafc;border-radius:8px;border:1px dashed #cbd5e1;">Sin herramientas específicas asignadas</div>`;
+        return;
+    }
+
+    cont.innerHTML = items.map((h, idx) => `
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.1rem;">🔧</span>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:0.85rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.nombre}</div>
+            </div>
+            <input type="number" value="${h.cantidad}" min="1"
+                onchange="cambiarCantidadHerramienta(${idx}, this.value)"
+                style="width:70px;padding:6px 8px;border-radius:6px;border:1px solid #cbd5e1;font-size:0.8rem;text-align:center;font-weight:700;color:#0369a1;font-family:inherit;">
+            <button type="button" onclick="quitarHerramientaMontaje(${idx})"
+                style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#b91c1c;font-size:0.9rem;display:flex;align-items:center;justify-content:center;"
+                title="Quitar">✕</button>
+        </div>
+    `).join('');
+}
+
+function cambiarCantidadHerramienta(idx, valor) {
+    const rec = window.APP.adminMontajeActual;
+    if (!rec.herramientas[idx]) return;
+    rec.herramientas[idx].cantidad = Math.max(1, parseInt(valor) || 1);
+}
+
+function quitarHerramientaMontaje(idx) {
+    const rec = window.APP.adminMontajeActual;
+    if (!rec.herramientas[idx]) return;
+    rec.herramientas.splice(idx, 1);
+    renderHerramientasMontaje();
 }
