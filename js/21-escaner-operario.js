@@ -96,6 +96,20 @@ async function abrirModalEscaner(montajeId) {
                     });
                 }
             }
+
+            const slots = componentes.map((comp, idx) => {
+    const encontrado = guardados[idx];
+    // ... lógica de encontrado
+    
+    return {
+        materialId: comp.materialId,
+        materialNombre: comp.materialNombre,
+        nombreEspecifico: comp.nombreEspecifico, // 🆕 Pasar al slot
+        numero: comp.numero,
+        total: comp.total,
+        // ... resto de campos
+    };
+});
         });
     }
 
@@ -267,9 +281,9 @@ ${hechos > 0 ? `
                                             ${tieneCodigo ? `
                                                 <div style="font-size:0.7rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">Nº Serie</div>
                                             ` : `
-                                                <div style="font-size:0.85rem;color:#94a3b8;font-style:italic;font-weight:600;">
-                                                    ${esElSiguiente ? '⏳ Siguiente a escanear' : 'Pendiente'}
-                                                </div>
+                                                <div style="font-size:0.85rem;color:${slot.nombreEspecifico ? '#1d4ed8' : '#94a3b8'};font-weight:${slot.nombreEspecifico ? '700' : '600'};">
+    ${slot.nombreEspecifico ? `Escanear: ${slot.nombreEspecifico}` : (esElSiguiente ? '⏳ Siguiente a escanear' : 'Pendiente')}
+</div>
                                             `}
                                         </div>
 
