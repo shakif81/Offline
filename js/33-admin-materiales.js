@@ -93,6 +93,7 @@ const colorBorder = color + '50';
     }).join('');
 }
 
+
 function mostrarFormNuevoMaterial() {
     document.getElementById('adminMaterialesForm').style.display = 'block';
     document.getElementById('adminMaterialFormTitulo').textContent = 'Nuevo Material';
@@ -102,10 +103,15 @@ function mostrarFormNuevoMaterial() {
     document.getElementById('adminMaterialCodigo').value = '';
     document.getElementById('adminMaterialUbicacion').value = '';
     document.getElementById('adminMaterialRequiereEscaneo').checked = false;
-document.getElementById('adminMaterialEsResistencia').checked = false;
-document.getElementById('adminMaterialNombresResistencias').value = '';
-document.getElementById('adminMaterialNombresResistenciasGroup').style.display = 'none';
-document.getElementById('btnEliminarMaterial').style.display = 'none';
+    document.getElementById('adminMaterialEsResistencia').checked = false;
+
+    // Limpiar y ocultar textareas
+    document.getElementById('adminMaterialNombresResistencias').value = '';
+    document.getElementById('adminMaterialNombresResistenciasGroup').style.display = 'none';
+    document.getElementById('adminMaterialNombresComponentes').value = '';
+    document.getElementById('adminMaterialNombresComponentesGroup').style.display = 'none';
+
+    document.getElementById('btnEliminarMaterial').style.display = 'none';
 
     actualizarPreviewMaterial();
 
@@ -126,14 +132,21 @@ function editarMaterialAdmin(id) {
         document.getElementById('adminMaterialCodigo').value = mat.codigo || '';
         document.getElementById('adminMaterialUbicacion').value = mat.ubicacion || '';
         document.getElementById('adminMaterialRequiereEscaneo').checked = mat.requiereEscaneo === true;
-document.getElementById('adminMaterialEsResistencia').checked = mat.esResistencia === true;
+        document.getElementById('adminMaterialEsResistencia').checked = mat.esResistencia === true;
 
-const nombres = Array.isArray(mat.nombresResistencias) ? mat.nombresResistencias : [];
-document.getElementById('adminMaterialNombresResistencias').value = nombres.join('\n');
-document.getElementById('adminMaterialNombresResistenciasGroup').style.display =
-    mat.esResistencia === true ? 'block' : 'none';
+        // Cargar nombres de resistencias
+        const nombresRes = Array.isArray(mat.nombresResistencias) ? mat.nombresResistencias : [];
+        document.getElementById('adminMaterialNombresResistencias').value = nombresRes.join('\n');
+        document.getElementById('adminMaterialNombresResistenciasGroup').style.display =
+            mat.esResistencia === true ? 'block' : 'none';
 
-document.getElementById('btnEliminarMaterial').style.display = 'inline-flex';
+        // Cargar nombres de componentes
+        const nombresComp = Array.isArray(mat.nombresComponentes) ? mat.nombresComponentes : [];
+        document.getElementById('adminMaterialNombresComponentes').value = nombresComp.join('\n');
+        document.getElementById('adminMaterialNombresComponentesGroup').style.display =
+            mat.requiereEscaneo === true ? 'block' : 'none';
+
+        document.getElementById('btnEliminarMaterial').style.display = 'inline-flex';
 
         actualizarPreviewMaterial();
 
@@ -148,10 +161,15 @@ function cerrarFormMaterial() {
     document.getElementById('adminMaterialCodigo').value = '';
     document.getElementById('adminMaterialUbicacion').value = '';
     document.getElementById('adminMaterialRequiereEscaneo').checked = false;
-document.getElementById('adminMaterialEsResistencia').checked = false;
-document.getElementById('adminMaterialNombresResistencias').value = '';
-document.getElementById('adminMaterialNombresResistenciasGroup').style.display = 'none';
-document.getElementById('btnEliminarMaterial').style.display = 'none';
+    document.getElementById('adminMaterialEsResistencia').checked = false;
+
+    // Limpiar y ocultar textareas
+    document.getElementById('adminMaterialNombresResistencias').value = '';
+    document.getElementById('adminMaterialNombresResistenciasGroup').style.display = 'none';
+    document.getElementById('adminMaterialNombresComponentes').value = '';
+    document.getElementById('adminMaterialNombresComponentesGroup').style.display = 'none';
+
+    document.getElementById('btnEliminarMaterial').style.display = 'none';
 }
 
 function actualizarPreviewMaterial() {
@@ -162,11 +180,13 @@ function actualizarPreviewMaterial() {
     const codigo = document.getElementById('adminMaterialCodigo')?.value || '';
     const ubicacion = document.getElementById('adminMaterialUbicacion')?.value || '';
     const esEscaneo = document.getElementById('adminMaterialRequiereEscaneo')?.checked;
-const esResistencia = document.getElementById('adminMaterialEsResistencia')?.checked;
+    const esResistencia = document.getElementById('adminMaterialEsResistencia')?.checked;
+    
     const color = esEscaneo ? '#3b82f6' : '#f97316';
     const colorBg = color + '15';
     const icono = esEscaneo ? '📷' : '🧪';
 
+    // Estilos checkbox Escaneo
     const label = document.getElementById('adminMaterialEscaneoLabel');
     if (label) {
         if (esEscaneo) {
@@ -178,20 +198,30 @@ const esResistencia = document.getElementById('adminMaterialEsResistencia')?.che
         }
     }
 
-const labelRes = document.getElementById('adminMaterialResistenciaLabel');
-if (labelRes) {
-    if (esResistencia) {
-        labelRes.style.borderColor = '#f59e0b';
-        labelRes.style.background = '#fffbeb';
-    } else {
-        labelRes.style.borderColor = '#cbd5e1';
-        labelRes.style.background = 'white';
+    // Estilos checkbox Resistencia
+    const labelRes = document.getElementById('adminMaterialResistenciaLabel');
+    if (labelRes) {
+        if (esResistencia) {
+            labelRes.style.borderColor = '#f59e0b';
+            labelRes.style.background = '#fffbeb';
+        } else {
+            labelRes.style.borderColor = '#cbd5e1';
+            labelRes.style.background = 'white';
+        }
     }
-}
-const groupNombres = document.getElementById('adminMaterialNombresResistenciasGroup');
-if (groupNombres) {
-    groupNombres.style.display = esResistencia ? 'block' : 'none';
-}
+
+    // Mostrar/Ocultar grupo de nombres de resistencias
+    const groupNombresRes = document.getElementById('adminMaterialNombresResistenciasGroup');
+    if (groupNombresRes) {
+        groupNombresRes.style.display = esResistencia ? 'block' : 'none';
+    }
+
+    // Mostrar/Ocultar grupo de nombres de componentes
+    const groupNombresComp = document.getElementById('adminMaterialNombresComponentesGroup');
+    if (groupNombresComp) {
+        groupNombresComp.style.display = esEscaneo ? 'block' : 'none';
+    }
+
     preview.innerHTML = `
         <div style="width:40px;height:40px;background:${colorBg};border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">${icono}</div>
         <div style="flex:1;min-width:0;">
@@ -200,7 +230,7 @@ if (groupNombres) {
                 ${codigo ? `<span style="font-family:'SF Mono',Monaco,monospace;font-size:0.72rem;color:#64748b;font-weight:400;">(${codigo})</span>` : ''}
             </div>
           <div style="font-size:0.75rem;color:${esResistencia ? '#f59e0b' : color};font-weight:600;display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
-    <span>${esResistencia ? '⚡ Resistencia' : esEscaneo ? '📷 Requiere escaneo' : '🧪 Material normal'}</span>
+                <span>${esResistencia ? '⚡ Resistencia' : esEscaneo ? '📷 Requiere escaneo' : '🧪 Material normal'}</span>
                 ${ubicacion ? `<span style="color:#cbd5e1;">·</span><span style="color:#64748b;font-weight:400;">📍 ${ubicacion}</span>` : ''}
             </div>
         </div>
@@ -213,7 +243,7 @@ async function guardarMaterialAdmin() {
     const codigo = document.getElementById('adminMaterialCodigo').value.trim();
     const ubicacion = document.getElementById('adminMaterialUbicacion').value.trim();
     const requiereEscaneo = document.getElementById('adminMaterialRequiereEscaneo').checked;
-const esResistencia = document.getElementById('adminMaterialEsResistencia').checked;
+    const esResistencia = document.getElementById('adminMaterialEsResistencia').checked;
 
     if (!nombre) {
         alertar('El nombre del material es obligatorio', { tipo: 'warning' });
@@ -244,23 +274,34 @@ const esResistencia = document.getElementById('adminMaterialEsResistencia').chec
         }
     }
 
-const nombresTexto = document.getElementById('adminMaterialNombresResistencias')?.value || '';
-const nombresResistencias = esResistencia
-    ? nombresTexto.split('\n').map(l => l.trim()).filter(l => l)
-    : [];
+    // Procesar nombres de resistencias
+    const nombresResTexto = document.getElementById('adminMaterialNombresResistencias')?.value || '';
+    const nombresResistencias = esResistencia
+        ? nombresResTexto.split('\n').map(l => l.trim()).filter(l => l)
+        : [];
 
-if (esResistencia && nombresResistencias.length === 0) {
-    console.info('ℹ️ Material marcado como resistencia sin nombres definidos');
-}
+    // Procesar nombres de componentes (escáner)
+    const nombresCompTexto = document.getElementById('adminMaterialNombresComponentes')?.value || '';
+    const nombresComponentes = requiereEscaneo
+        ? nombresCompTexto.split('\n').map(l => l.trim()).filter(l => l)
+        : [];
 
-const data = {
-    nombre: nombre,
-    codigo: codigo,
-    ubicacion: ubicacion,
-    requiereEscaneo: requiereEscaneo,
-    esResistencia: esResistencia,
-    nombresResistencias: nombresResistencias
-};
+    if (esResistencia && nombresResistencias.length === 0) {
+        console.info('ℹ️ Material marcado como resistencia sin nombres definidos');
+    }
+    if (requiereEscaneo && nombresComponentes.length === 0) {
+        console.info('ℹ️ Material marcado para escaneo sin nombres de componentes definidos');
+    }
+
+    const data = {
+        nombre: nombre,
+        codigo: codigo,
+        ubicacion: ubicacion,
+        requiereEscaneo: requiereEscaneo,
+        esResistencia: esResistencia,
+        nombresResistencias: nombresResistencias,
+        nombresComponentes: nombresComponentes // 🆕 Añadido
+    };
 
     mostrarLoading('Guardando material...');
     const ok = await guardarFirebase('materiales_catalogo', id, data);
@@ -274,6 +315,14 @@ const data = {
         toast('❌ Error al guardar', '#ef4444');
     }
 }
+
+
+
+
+
+
+
+
 
 async function duplicarMaterialAdmin(id) {
     const materiales = await cargarFirebase('materiales_catalogo');
