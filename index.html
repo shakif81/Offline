@@ -943,7 +943,22 @@
         Si defines menos de los que pide el montaje → las sobrantes usan el nombre del material.
     </small>
 </div>
-            <div style="background:white;border-radius:10px;padding:14px;margin-top:14px;border:1px dashed #cbd5e1;">
+       <!-- 🆕 NOMBRES DE COMPONENTES (solo visible si requiere escaneo) -->
+<div class="form-group" id="adminMaterialNombresComponentesGroup" style="display:none;margin-top:8px;">
+    <label style="display:block;font-size:0.8rem;font-weight:700;color:#1d4ed8;margin-bottom:6px;">
+        📋 Lista de nombres para escanear
+    </label>
+    <textarea id="adminMaterialNombresComponentes" rows="6"
+        placeholder="Z1101&#10;Z1102&#10;Z1103"
+        style="width:100%;padding:10px 12px;border:2px solid #bfdbfe;border-radius:10px;font-size:0.85rem;font-family:'SF Mono',Monaco,monospace;resize:vertical;background:#eff6ff;font-weight:700;line-height:1.7;color:#1e40af;letter-spacing:0.02em;"></textarea>
+    <small style="color:#1d4ed8;font-size:0.72rem;display:block;margin-top:6px;line-height:1.5;">
+        ⚠️ <strong>Un nombre por línea</strong>. Si el montaje pide 3 unidades, se usarán Z1101, Z1102 y Z1103.<br>
+        Si no se definen, el operario verá el nombre del catálogo (PMX).
+    </small>
+</div>   
+          
+          
+          <div style="background:white;border-radius:10px;padding:14px;margin-top:14px;border:1px dashed #cbd5e1;">
                 <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;margin-bottom:8px;">👁️ Vista previa</div>
                 <div id="adminMaterialPreview" style="display:flex;align-items:center;gap:12px;"></div>
             </div>
