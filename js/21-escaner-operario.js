@@ -86,30 +86,20 @@ async function abrirModalEscaner(montajeId) {
             }
 
             if (cat?.requiereEscaneo === true) {
+                // 🆕 Leer la lista de nombres específicos (Z1101, etc.)
+                const nombresPredef = Array.isArray(cat.nombresComponentes) ? cat.nombresComponentes : [];
+
                 for (let i = 0; i < cantidad; i++) {
                     componentes.push({
                         materialId: matId,
                         materialNombre: cat.nombre || matId,
                         materialCodigo: cat.codigo || '',
+                        nombreEspecifico: nombresPredef[i] || '', // 🆕 Se asigna el nombre que toca
                         numero: i + 1,
                         total: cantidad
                     });
                 }
             }
-
-            const slots = componentes.map((comp, idx) => {
-    const encontrado = guardados[idx];
-    // ... lógica de encontrado
-    
-    return {
-        materialId: comp.materialId,
-        materialNombre: comp.materialNombre,
-        nombreEspecifico: comp.nombreEspecifico, // 🆕 Pasar al slot
-        numero: comp.numero,
-        total: comp.total,
-        // ... resto de campos
-    };
-});
         });
     }
 
@@ -122,35 +112,37 @@ async function abrirModalEscaner(montajeId) {
     const escaneosGuardados = await cargarFirebase('componentes_escaneados', true);
     const guardados = escaneosGuardados[claveEscaneos]?.componentes || [];
 
-const slots = componentes.map((comp, idx) => {
-    const encontrado = guardados[idx];
-    if (encontrado && encontrado.materialId === comp.materialId) {
-        return {
+    const slots = componentes.map((comp, idx) => {
+        const encontrado = guardados[idx];
+        
+        // 🆕 Incluimos nombreEspecifico en el slot base
+        const baseSlot = {
             materialId: comp.materialId,
             materialNombre: comp.materialNombre,
+            nombreEspecifico: comp.nombreEspecifico, 
             numero: comp.numero,
             total: comp.total,
-            codigoEscaneado: encontrado.codigoEscaneado || '',
-            codigoOriginal: encontrado.codigoOriginal || '',
-            revision: encontrado.revision || '',
-            escaneadoPor: encontrado.escaneadoPor || '',
-            fechaEscaneo: encontrado.fechaEscaneo || null,
-            manual: encontrado.manual || false
+            codigoEscaneado: '',
+            codigoOriginal: '',
+            revision: '',
+            escaneadoPor: '',
+            fechaEscaneo: null,
+            manual: false
         };
-    }
-    return {
-        materialId: comp.materialId,
-        materialNombre: comp.materialNombre,
-        numero: comp.numero,
-        total: comp.total,
-        codigoEscaneado: '',
-        codigoOriginal: '',
-        revision: '',
-        escaneadoPor: '',
-        fechaEscaneo: null,
-        manual: false
-    };
-});
+
+        if (encontrado && encontrado.materialId === comp.materialId) {
+            return {
+                ...baseSlot,
+                codigoEscaneado: encontrado.codigoEscaneado || '',
+                codigoOriginal: encontrado.codigoOriginal || '',
+                revision: encontrado.revision || '',
+                escaneadoPor: encontrado.escaneadoPor || '',
+                fechaEscaneo: encontrado.fechaEscaneo || null,
+                manual: encontrado.manual || false
+            };
+        }
+        return baseSlot;
+    });
 
     window.APP._escanerActual = {
         montajeId,
@@ -210,27 +202,26 @@ function renderModalEscaner() {
             <button onclick="cerrarModalEscaner()" style="background:#f1f5f9;border:none;border-radius:10px;width:44px;height:44px;font-size:1.3rem;cursor:pointer;color:#475569;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
         </div>
         
-        
-         <!-- REVISIÓN GLOBAL -->
-${hechos > 0 ? `
-<div style="padding:12px 20px;background:#fffbeb;border-bottom:1px solid #fde68a;flex-shrink:0;">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;max-width:900px;margin:0 auto;">
-        <span style="font-size:0.8rem;font-weight:700;color:#b45309;flex-shrink:0;">
-            📝 Revisión global:
-        </span>
-        <input type="text" id="escanerRevGlobal" placeholder="Ej: A, R1..." maxlength="20"
-            style="flex:1;min-width:120px;max-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #fcd34d;font-size:0.85rem;font-family:inherit;background:white;text-align:center;font-weight:700;"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarRevisionGlobalEscaner();}">
-        <button onclick="aplicarRevisionGlobalEscaner()" style="
-            padding:8px 16px;border:none;border-radius:8px;
-            background:#f59e0b;color:white;font-weight:700;font-size:0.8rem;
-            cursor:pointer;font-family:inherit;white-space:nowrap;
-        ">
-            ✅ Aplicar a escaneados
-        </button>
-    </div>
-</div>
-` : ''}
+        <!-- REVISIÓN GLOBAL -->
+        ${hechos > 0 ? `
+        <div style="padding:12px 20px;background:#fffbeb;border-bottom:1px solid #fde68a;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;max-width:900px;margin:0 auto;">
+                <span style="font-size:0.8rem;font-weight:700;color:#b45309;flex-shrink:0;">
+                    📝 Revisión global:
+                </span>
+                <input type="text" id="escanerRevGlobal" placeholder="Ej: A, R1..." maxlength="20"
+                    style="flex:1;min-width:120px;max-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #fcd34d;font-size:0.85rem;font-family:inherit;background:white;text-align:center;font-weight:700;"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarRevisionGlobalEscaner();}">
+                <button onclick="aplicarRevisionGlobalEscaner()" style="
+                    padding:8px 16px;border:none;border-radius:8px;
+                    background:#f59e0b;color:white;font-weight:700;font-size:0.8rem;
+                    cursor:pointer;font-family:inherit;white-space:nowrap;
+                ">
+                    ✅ Aplicar a escaneados
+                </button>
+            </div>
+        </div>
+        ` : ''}
 
         <!-- BARRA DE PROGRESO -->
         <div style="padding:12px 20px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
@@ -279,11 +270,13 @@ ${hechos > 0 ? `
 
                                         <div style="flex:1;min-width:0;">
                                             ${tieneCodigo ? `
-                                                <div style="font-size:0.7rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">Nº Serie</div>
+                                                <div style="font-size:0.7rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">
+                                                    ${slot.nombreEspecifico ? slot.nombreEspecifico : 'Nº Serie'}
+                                                </div>
                                             ` : `
                                                 <div style="font-size:0.85rem;color:${slot.nombreEspecifico ? '#1d4ed8' : '#94a3b8'};font-weight:${slot.nombreEspecifico ? '700' : '600'};">
-    ${slot.nombreEspecifico ? `Escanear: ${slot.nombreEspecifico}` : (esElSiguiente ? '⏳ Siguiente a escanear' : 'Pendiente')}
-</div>
+                                                    ${slot.nombreEspecifico ? `Escanear: <span style="background:#eef2ff;padding:2px 6px;border-radius:4px;font-family:monospace;">${slot.nombreEspecifico}</span>` : (esElSiguiente ? '⏳ Siguiente a escanear' : 'Pendiente')}
+                                                </div>
                                             `}
                                         </div>
 
@@ -311,7 +304,7 @@ ${hechos > 0 ? `
                                         <div style="display:grid;grid-template-columns:1fr 100px;gap:10px;margin-top:12px;">
                                             <input type="text" value="${slot.codigoEscaneado || ''}"
                                                 oninput="cambiarCodigoSlot(${slot.idx}, this.value)"
-                                                placeholder="Nº Serie..."
+                                                placeholder="${slot.nombreEspecifico ? slot.nombreEspecifico : 'Nº Serie...'}"
                                                 style="
                                                     width:100%;
                                                     padding:10px 12px;
