@@ -64,6 +64,8 @@ async function cargarInspeccionOperacion() {
     renderFormularioInspeccionAdmin();
 }
 
+
+
 function renderFormularioInspeccionAdmin() {
     const cont = document.getElementById('inspeccionContenido');
     if (!cont) return;
@@ -72,8 +74,8 @@ function renderFormularioInspeccionAdmin() {
     const puntos = window.APP._inspeccionAdmin.puntos;
 
     const totalPuntos = puntos.length;
-const aplicadas = puntos.filter(p => p.correccion?.aplicada).length;
-const pendientes = totalPuntos - aplicadas;
+    const aplicadas = puntos.filter(p => p.correccion?.aplicada).length;
+    const pendientes = totalPuntos - aplicadas;
 
     cont.innerHTML = `
         <!-- CABECERA -->
@@ -83,82 +85,59 @@ const pendientes = totalPuntos - aplicadas;
                     📋 Puntos de inspección
                 </div>
                 <div style="display:flex;gap:6px;font-size:0.72rem;font-weight:700;flex-wrap:wrap;">
-    <span style="background:#fef2f2;color:#b91c1c;padding:3px 10px;border-radius:99px;">⚠️ ${totalPuntos} incidencia${totalPuntos !== 1 ? 's' : ''}</span>
-    ${aplicadas > 0 ? `<span style="background:#ecfdf5;color:#047857;padding:3px 10px;border-radius:99px;">✅ ${aplicadas} corregida${aplicadas !== 1 ? 's' : ''}</span>` : ''}
-    ${pendientes > 0 ? `<span style="background:#fff7ed;color:#c2410c;padding:3px 10px;border-radius:99px;">⏳ ${pendientes} pendiente${pendientes !== 1 ? 's' : ''}</span>` : ''}
-</div>
-            </div>
-
-         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input type="text" id="inspNuevoPuntoTexto" placeholder="Escribe la incidencia o corrección..." maxlength="200" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;" onkeydown="if(event.key==='Enter'){event.preventDefault();añadirPuntoInspeccion();}">
-    <button type="button" onclick="añadirPuntoInspeccion()" style="
-        padding:10px 20px;
-        border:none;
-        border-radius:8px;
-        background:#ef4444;
-        color:white;
-        font-weight:700;
-        font-size:0.82rem;
-        cursor:pointer;
-        font-family:inherit;
-        display:flex;
-        align-items:center;
-        gap:6px;
-    ">⚠️ Añadir incidencia</button>
-</div>
-
-        <!-- LISTA DE PUNTOS -->
-        <div id="inspListaPuntos" style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;">
-            ${puntos.length === 0 ? `
-                <div class="empty-state">
-                    <div style="font-size:1.5rem;margin-bottom:6px;">📝</div>
-                    <div style="font-weight:600;color:#1e293b;font-size:0.9rem;margin-bottom:4px;">Aún no hay puntos</div>
-                    <div style="font-size:0.78rem;color:#94a3b8;">Escribe arriba el primer punto y pulsa ✅ o ⚠️</div>
+                    <span style="background:#fef2f2;color:#b91c1c;padding:3px 10px;border-radius:99px;">⚠️ ${totalPuntos} incidencia${totalPuntos !== 1 ? 's' : ''}</span>
+                    ${aplicadas > 0 ? `<span style="background:#ecfdf5;color:#047857;padding:3px 10px;border-radius:99px;">✅ ${aplicadas} corregida${aplicadas !== 1 ? 's' : ''}</span>` : ''}
+                    ${pendientes > 0 ? `<span style="background:#fff7ed;color:#c2410c;padding:3px 10px;border-radius:99px;">⏳ ${pendientes} pendiente${pendientes !== 1 ? 's' : ''}</span>` : ''}
                 </div>
-            ` : puntos.map((p, idx) => renderPuntoAdmin(p, idx)).join('')}
-        </div>
-
-        <!-- BOTONES -->
-        ${puntos.length > 0 ? `
-            <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:1rem;border-top:1px solid #e5e7eb;">
-                <button onclick="guardarInspeccionAdmin()" style="
-                    flex:1;
-                    min-width:150px;
-                    padding:12px 20px;
-                    border:none;
-                    border-radius:10px;
-                    background:#10b981;
-                    color:white;
-                    font-weight:700;
-                    font-size:0.88rem;
-                    cursor:pointer;
-                    font-family:inherit;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    gap:6px;
-                ">💾 Guardar Inspección</button>
-                ${inspExiste(opId) ? `
-                    <button onclick="eliminarInspeccionAdmin()" style="
-                        padding:12px 20px;
-                        border:1px solid #fecaca;
-                        border-radius:10px;
-                        background:#fef2f2;
-                        color:#b91c1c;
-                        font-weight:700;
-                        font-size:0.85rem;
-                        cursor:pointer;
-                        font-family:inherit;
-                    ">🗑️ Eliminar</button>
-                ` : ''}
             </div>
-        ` : ''}
+
+            <!-- FORMULARIO NUEVA INCIDENCIA -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;flex-direction:column;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <input type="text" id="inspNuevoPuntoTexto" placeholder="Escribe la incidencia o corrección..." maxlength="200" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;" onkeydown="if(event.key==='Enter'){event.preventDefault();añadirPuntoInspeccion();}">
+                    <button type="button" onclick="añadirPuntoInspeccion()" style="padding:10px 20px;border:none;border-radius:8px;background:#ef4444;color:white;font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;">⚠️ Añadir</button>
+                </div>
+                
+                <!-- 🆕 SUBIR FOTO -->
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <input type="file" id="inspNuevaFoto" accept="image/*" style="display:none;" onchange="document.getElementById('inspNuevaFotoLabel').innerHTML = this.files[0] ? '🖼️ ' + this.files[0].name : '📷 Adjuntar foto (Opcional)'">
+                    <button type="button" onclick="document.getElementById('inspNuevaFoto').click()" id="inspNuevaFotoLabel" style="padding:8px 12px;border:1px dashed #cbd5e1;border-radius:8px;background:white;color:#64748b;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        📷 Adjuntar foto (Opcional)
+                    </button>
+                </div>
+            </div>
+
+            <!-- LISTA DE PUNTOS -->
+            <div id="inspListaPuntos" style="display:flex;flex-direction:column;gap:8px;margin-top:1rem;">
+                ${puntos.length === 0 ? `
+                    <div class="empty-state" style="margin-top:0;">
+                        <div style="font-size:1.5rem;margin-bottom:6px;">📝</div>
+                        <div style="font-weight:600;color:#1e293b;font-size:0.9rem;margin-bottom:4px;">Aún no hay puntos</div>
+                        <div style="font-size:0.78rem;color:#94a3b8;">Escribe arriba el primer punto y pulsa ⚠️</div>
+                    </div>
+                ` : puntos.map((p, idx) => renderPuntoAdmin(p, idx)).join('')}
+            </div>
+
+            <!-- BOTONES -->
+            ${puntos.length > 0 ? `
+                <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:1rem;border-top:1px solid #e5e7eb;margin-top:1rem;">
+                    <button onclick="guardarInspeccionAdmin()" style="flex:1;min-width:150px;padding:12px 20px;border:none;border-radius:10px;background:#10b981;color:white;font-weight:700;font-size:0.88rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">💾 Guardar Inspección</button>
+                    ${inspExiste(opId) ? `
+                        <button onclick="eliminarInspeccionAdmin()" style="padding:12px 20px;border:1px solid #fecaca;border-radius:10px;background:#fef2f2;color:#b91c1c;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;">🗑️ Eliminar</button>
+                    ` : ''}
+                </div>
+            ` : ''}
+        </div>
     `;
 }
+
+
+
 
 function renderPuntoAdmin(punto, idx) {
     const correccion = punto.correccion || {};
     const aplicada = correccion.aplicada === true;
+    const fotos = punto.fotos || [];
 
     const colorBorde = aplicada ? '#10b981' : '#ef4444';
     const colorFondo = aplicada ? '#ecfdf5' : '#fef2f2';
@@ -172,10 +151,19 @@ function renderPuntoAdmin(punto, idx) {
                     <div style="font-weight:600;font-size:0.85rem;color:#1e293b;line-height:1.4;">
                         ${punto.texto}
                     </div>
+                    
+                    <!-- 🆕 GALERÍA DE FOTOS -->
+                    ${fotos.length > 0 ? `
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+                            ${fotos.map(url => `
+                                <img src="${url}" onclick="verFotoGrande('${url}')" style="width:50px;height:50px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;">
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
                     ${aplicada ? `
                         <div style="font-size:0.72rem;color:#047857;font-weight:700;margin-top:6px;display:inline-flex;align-items:center;gap:4px;background:#ecfdf5;padding:3px 10px;border-radius:99px;border:1px solid #a7f3d0;">
                             ✅ Corregida por ${correccion.aplicadaPor || '—'}
-                            ${correccion.fechaAplicada ? ` · ${new Date(correccion.fechaAplicada).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}
                         </div>
                     ` : `
                         <div style="font-size:0.72rem;color:#b91c1c;font-weight:700;margin-top:6px;display:inline-flex;align-items:center;gap:4px;background:white;padding:3px 10px;border-radius:99px;border:1px solid #fecaca;">
@@ -183,16 +171,18 @@ function renderPuntoAdmin(punto, idx) {
                         </div>
                     `}
                 </div>
-                <button type="button" onclick="editarPuntoInspeccion(${idx})"
-                    style="background:white;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#1d4ed8;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
-                    title="Editar">✏️</button>
-                <button type="button" onclick="quitarPuntoInspeccion(${idx})"
-                    style="background:white;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#64748b;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
-                    title="Quitar">✕</button>
+                
+                <!-- BOTONES EDITAR/BORRAR -->
+                <button type="button" onclick="editarPuntoInspeccion(${idx})" style="background:white;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#1d4ed8;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Editar">✏️</button>
+                <button type="button" onclick="quitarPuntoInspeccion(${idx})" style="background:white;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#64748b;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Quitar">✕</button>
             </div>
         </div>
     `;
 }
+
+
+
+
 
 function inspExiste(operacionId) {
     const cache = window.APP.fbCache['inspecciones_caldereria'];
@@ -200,8 +190,12 @@ function inspExiste(operacionId) {
     return !!cache.data[operacionId];
 }
 
-function añadirPuntoInspeccion() {
+
+
+async function añadirPuntoInspeccion() {
     const inp = document.getElementById('inspNuevoPuntoTexto');
+    const fileInput = document.getElementById('inspNuevaFoto');
+    const fileLabel = document.getElementById('inspNuevaFotoLabel');
     if (!inp) return;
 
     const texto = inp.value.trim();
@@ -210,9 +204,22 @@ function añadirPuntoInspeccion() {
         return;
     }
 
+    let urlFoto = '';
+    
+    // 🆕 Subir foto si se ha seleccionado
+    if (fileInput && fileInput.files[0]) {
+        mostrarLoading('Subiendo foto...');
+        urlFoto = await subirACloudinary(fileInput.files[0]);
+        ocultarLoading();
+        if (!urlFoto) {
+            toast('⚠️ No se pudo subir la foto, pero se guardará el texto', '#f59e0b');
+        }
+    }
+
     const punto = {
         id: 'pt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         texto,
+        fotos: urlFoto ? [urlFoto] : [], // 🆕 Array de fotos
         estado: 'falla',
         correccion: {
             aplicada: false,
@@ -222,12 +229,19 @@ function añadirPuntoInspeccion() {
     };
 
     window.APP._inspeccionAdmin.puntos.push(punto);
+    
+    // Limpiar inputs
     inp.value = '';
+    if (fileInput) fileInput.value = '';
+    if (fileLabel) fileLabel.innerHTML = '📷 Adjuntar foto (Opcional)';
+    
     inp.focus();
 
     renderFormularioInspeccionAdmin();
     toast('⚠️ Incidencia añadida', '#ef4444', 1200);
 }
+
+
 
 async function editarPuntoInspeccion(idx) {
     const punto = window.APP._inspeccionAdmin.puntos[idx];
@@ -329,7 +343,10 @@ async function eliminarInspeccionAdmin() {
     renderFormularioInspeccionAdmin();
 }
 
-async function mostrarAvisoInspeccionCaldereria(operacionId) {
+
+
+
+ async function mostrarAvisoInspeccionCaldereria(operacionId) {
     document.getElementById('avisoInspCaldereria')?.remove();
 
     const inspecciones = await cargarFirebase('inspecciones_caldereria', true);
@@ -382,44 +399,62 @@ async function mostrarAvisoInspeccionCaldereria(operacionId) {
             </div>
         </div>
         ${fallas.length ? `
-            <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
                 ${fallas.map(p => {
                     const aplicada = p.correccion?.aplicada === true;
+                    const fotos = p.fotos || []; // 🆕 Recuperar las fotos
+                    
                     return `
-                        <div style="background:white;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;border:1px solid ${aplicada ? '#a7f3d0' : '#fed7aa'};">
-                            <span style="font-size:1rem;">${aplicada ? '✅' : '⚠️'}</span>
-                            <div style="flex:1;font-size:0.82rem;color:#1e293b;font-weight:600;line-height:1.4;">
-                                ${p.texto}
+                        <div style="background:white;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;border:1px solid ${aplicada ? '#a7f3d0' : '#fed7aa'};">
+                            
+                            <!-- FILA 1: Texto y Botón -->
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <span style="font-size:1rem;">${aplicada ? '✅' : '⚠️'}</span>
+                                <div style="flex:1;font-size:0.82rem;color:#1e293b;font-weight:600;line-height:1.4;">
+                                    ${p.texto}
+                                </div>
+                                
+                                ${aplicada ? `
+                                    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                        <span style="font-size:0.68rem;color:#047857;font-weight:700;background:#ecfdf5;padding:3px 10px;border-radius:99px;">
+                                            ✅ Corregida
+                                        </span>
+                                        <span style="font-size:0.65rem;color:#059669;font-weight:600;">
+                                            ${p.correccion?.aplicadaPor || ''}
+                                        </span>
+                                    </div>
+                                ` : `
+                                    <button onclick="marcarCorreccionAplicada('${operacionId}', '${p.id}')"
+                                        style="
+                                            padding:8px 14px;
+                                            border:none;
+                                            border-radius:8px;
+                                            background:#10b981;
+                                            color:white;
+                                            font-size:0.75rem;
+                                            font-weight:700;
+                                            cursor:pointer;
+                                            font-family:inherit;
+                                            flex-shrink:0;
+                                            display:flex;
+                                            align-items:center;
+                                            gap:4px;
+                                        ">
+                                        🔧 Corregir
+                                    </button>
+                                `}
                             </div>
-                        ${aplicada ? `
-    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-        <span style="font-size:0.68rem;color:#047857;font-weight:700;background:#ecfdf5;padding:3px 10px;border-radius:99px;">
-            ✅ Corregida
-        </span>
-        <span style="font-size:0.65rem;color:#059669;font-weight:600;">
-            ${p.correccion?.aplicadaPor || ''}
-        </span>
-    </div>
-` : `
-    <button onclick="marcarCorreccionAplicada('${operacionId}', '${p.id}')"
-        style="
-            padding:8px 14px;
-            border:none;
-            border-radius:8px;
-            background:#10b981;
-            color:white;
-            font-size:0.75rem;
-            font-weight:700;
-            cursor:pointer;
-            font-family:inherit;
-            flex-shrink:0;
-            display:flex;
-            align-items:center;
-            gap:4px;
-        ">
-        🔧 Corregir
-    </button>
-`}
+
+                            <!-- 🆕 FILA 2: Fotos si las hay -->
+                            ${fotos.length > 0 ? `
+                                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-left:26px;">
+                                    ${fotos.map(url => `
+                                        <img src="${url}" onclick="verFotoGrande('${url}')" 
+                                            style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #cbd5e1;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+
                         </div>
                     `;
                 }).join('')}
@@ -427,11 +462,16 @@ async function mostrarAvisoInspeccionCaldereria(operacionId) {
         ` : ''}
     `;
 
+    // Insertar el aviso justo antes de la lista de montajes
     const montajesList = document.getElementById('montajesList');
     if (montajesList && montajesList.parentNode) {
         montajesList.parentNode.insertBefore(aviso, montajesList);
     }
 }
+
+
+
+
 
 async function marcarCorreccionAplicada(operacionId, puntoId) {
     const ok = await confirmar(
