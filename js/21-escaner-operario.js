@@ -7,44 +7,27 @@ window.APP._escanerActual = {
 
 function tieneComponentesAEscanear(montaje) {
     if (!montaje.materialesNecesarios) return false;
-
     const materialesCache = window.APP.fbCache['materiales_catalogo']?.data || {};
-
     return montaje.materialesNecesarios.split('||').some(item => {
         const matId = item.trim().split('=')[0];
         if (!matId) return false;
-
-        const cat = materialesCache[matId] ||
-            Object.values(materialesCache).find(m =>
-                m.codigo === matId || m.nombre === matId
-            );
-
+        const cat = materialesCache[matId] || Object.values(materialesCache).find(m => m.codigo === matId || m.nombre === matId);
         return cat?.requiereEscaneo === true;
     });
 }
 
 function contarComponentesAEscanear(montaje) {
     if (!montaje.materialesNecesarios) return 0;
-
     const materialesCache = window.APP.fbCache['materiales_catalogo']?.data || {};
     let total = 0;
-
     montaje.materialesNecesarios.split('||').forEach(item => {
         const partes = item.trim().split('=');
         const matId = partes[0];
         const cantidad = parseInt(partes[1]) || 1;
         if (!matId) return;
-
-        const cat = materialesCache[matId] ||
-            Object.values(materialesCache).find(m =>
-                m.codigo === matId || m.nombre === matId
-            );
-
-        if (cat?.requiereEscaneo === true) {
-            total += cantidad;
-        }
+        const cat = materialesCache[matId] || Object.values(materialesCache).find(m => m.codigo === matId || m.nombre === matId);
+        if (cat?.requiereEscaneo === true) total += cantidad;
     });
-
     return total;
 }
 
@@ -80,21 +63,18 @@ async function abrirModalEscaner(montajeId) {
 
             let cat = materiales[matId];
             if (!cat) {
-                cat = Object.values(materiales).find(mm =>
-                    mm.codigo === matId || mm.nombre === matId
-                );
+                cat = Object.values(materiales).find(mm => mm.codigo === matId || mm.nombre === matId);
             }
 
             if (cat?.requiereEscaneo === true) {
-                // 🆕 Leer la lista de nombres específicos (Z1101, etc.)
+                // 🆕 Leer nombres específicos (Z1101, Z1102...)
                 const nombresPredef = Array.isArray(cat.nombresComponentes) ? cat.nombresComponentes : [];
-
                 for (let i = 0; i < cantidad; i++) {
                     componentes.push({
                         materialId: matId,
                         materialNombre: cat.nombre || matId,
                         materialCodigo: cat.codigo || '',
-                        nombreEspecifico: nombresPredef[i] || '', // 🆕 Se asigna el nombre que toca
+                        nombreEspecifico: nombresPredef[i] || '', // 🆕
                         numero: i + 1,
                         total: cantidad
                     });
@@ -114,12 +94,10 @@ async function abrirModalEscaner(montajeId) {
 
     const slots = componentes.map((comp, idx) => {
         const encontrado = guardados[idx];
-        
-        // 🆕 Incluimos nombreEspecifico en el slot base
         const baseSlot = {
             materialId: comp.materialId,
             materialNombre: comp.materialNombre,
-            nombreEspecifico: comp.nombreEspecifico, 
+            nombreEspecifico: comp.nombreEspecifico, // 🆕
             numero: comp.numero,
             total: comp.total,
             codigoEscaneado: '',
@@ -184,7 +162,7 @@ function renderModalEscaner() {
     modal.style.cssText = 'position:fixed;inset:0;background:white;z-index:99999;display:flex;flex-direction:column;overflow:hidden;';
 
     modal.innerHTML = `
-        <!-- CABECERA (Estilo Detalle de Estación) -->
+        <!-- CABECERA -->
         <div style="background:white;border-bottom:1px solid #e5e7eb;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
             <div style="display:flex;align-items:center;gap:14px;min-width:0;">
                 <div style="width:48px;height:48px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">📷</div>
@@ -206,19 +184,9 @@ function renderModalEscaner() {
         ${hechos > 0 ? `
         <div style="padding:12px 20px;background:#fffbeb;border-bottom:1px solid #fde68a;flex-shrink:0;">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;max-width:900px;margin:0 auto;">
-                <span style="font-size:0.8rem;font-weight:700;color:#b45309;flex-shrink:0;">
-                    📝 Revisión global:
-                </span>
-                <input type="text" id="escanerRevGlobal" placeholder="Ej: A, R1..." maxlength="20"
-                    style="flex:1;min-width:120px;max-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #fcd34d;font-size:0.85rem;font-family:inherit;background:white;text-align:center;font-weight:700;"
-                    onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarRevisionGlobalEscaner();}">
-                <button onclick="aplicarRevisionGlobalEscaner()" style="
-                    padding:8px 16px;border:none;border-radius:8px;
-                    background:#f59e0b;color:white;font-weight:700;font-size:0.8rem;
-                    cursor:pointer;font-family:inherit;white-space:nowrap;
-                ">
-                    ✅ Aplicar a escaneados
-                </button>
+                <span style="font-size:0.8rem;font-weight:700;color:#b45309;flex-shrink:0;">📝 Revisión global:</span>
+                <input type="text" id="escanerRevGlobal" placeholder="Ej: A, R1..." maxlength="20" style="flex:1;min-width:120px;max-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #fcd34d;font-size:0.85rem;font-family:inherit;background:white;text-align:center;font-weight:700;" onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarRevisionGlobalEscaner();}">
+                <button onclick="aplicarRevisionGlobalEscaner()" style="padding:8px 16px;border:none;border-radius:8px;background:#f59e0b;color:white;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:inherit;white-space:nowrap;">✅ Aplicar a escaneados</button>
             </div>
         </div>
         ` : ''}
@@ -250,23 +218,9 @@ function renderModalEscaner() {
                             const esElSiguiente = esSiguienteSlot(slot.idx);
 
                             return `
-                                <div style="
-                                    background:${tieneCodigo ? '#f0fdf4' : (esElSiguiente ? '#eef2ff' : '#f8fafc')};
-                                    border:1px solid ${tieneCodigo ? '#a7f3d0' : (esElSiguiente ? '#c7d2fe' : '#e5e7eb')};
-                                    border-radius:10px;
-                                    padding:12px 14px;
-                                ">
+                                <div style="background:${tieneCodigo ? '#f0fdf4' : (esElSiguiente ? '#eef2ff' : '#f8fafc')};border:1px solid ${tieneCodigo ? '#a7f3d0' : (esElSiguiente ? '#c7d2fe' : '#e5e7eb')};border-radius:10px;padding:12px 14px;">
                                     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                                        <span style="
-                                            background:${tieneCodigo ? '#10b981' : (esElSiguiente ? '#6366f1' : '#94a3b8')};
-                                            color:white;
-                                            width:30px;height:30px;
-                                            border-radius:50%;
-                                            display:flex;align-items:center;justify-content:center;
-                                            font-size:0.78rem;
-                                            font-weight:800;
-                                            flex-shrink:0;
-                                        ">${tieneCodigo ? '✓' : slot.numero}</span>
+                                        <span style="background:${tieneCodigo ? '#10b981' : (esElSiguiente ? '#6366f1' : '#94a3b8')};color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:800;flex-shrink:0;">${tieneCodigo ? '✓' : slot.numero}</span>
 
                                         <div style="flex:1;min-width:0;">
                                             ${tieneCodigo ? `
@@ -281,57 +235,17 @@ function renderModalEscaner() {
                                         </div>
 
                                         ${tieneCodigo ? `
-                                            <button onclick="borrarEscaneoSlot(${slot.idx})" style="
-                                                background:#fef2f2;border:1px solid #fecaca;border-radius:8px;
-                                                padding:6px 12px;font-size:0.72rem;color:#b91c1c;cursor:pointer;
-                                                font-family:inherit;font-weight:700;
-                                            ">🗑️ Borrar</button>
+                                            <button onclick="borrarEscaneoSlot(${slot.idx})" style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#b91c1c;cursor:pointer;font-family:inherit;font-weight:700;">🗑️ Borrar</button>
                                         ` : esElSiguiente ? `
-                                            <button onclick="abrirCamaraEscaner(${slot.idx})" style="
-                                                background:#6366f1;border:none;border-radius:8px;
-                                                padding:8px 14px;font-size:0.78rem;color:white;cursor:pointer;
-                                                font-family:inherit;font-weight:700;
-                                            ">📷 Escanear</button>
-                                            <button onclick="abrirModalEscanerManual(${slot.idx})" style="
-                                                background:white;border:1px solid #cbd5e1;border-radius:8px;
-                                                padding:8px 14px;font-size:0.78rem;color:#64748b;cursor:pointer;
-                                                font-family:inherit;font-weight:600;
-                                            ">✍️ Manual</button>
+                                            <button onclick="abrirCamaraEscaner(${slot.idx})" style="background:#6366f1;border:none;border-radius:8px;padding:8px 14px;font-size:0.78rem;color:white;cursor:pointer;font-family:inherit;font-weight:700;">📷 Escanear</button>
+                                            <button onclick="abrirModalEscanerManual(${slot.idx})" style="background:white;border:1px solid #cbd5e1;border-radius:8px;padding:8px 14px;font-size:0.78rem;color:#64748b;cursor:pointer;font-family:inherit;font-weight:600;">✍️ Manual</button>
                                         ` : ''}
                                     </div>
 
                                     ${tieneCodigo ? `
                                         <div style="display:grid;grid-template-columns:1fr 100px;gap:10px;margin-top:12px;">
-                                            <input type="text" value="${slot.codigoEscaneado || ''}"
-                                                oninput="cambiarCodigoSlot(${slot.idx}, this.value)"
-                                                placeholder="${slot.nombreEspecifico ? slot.nombreEspecifico : 'Nº Serie...'}"
-                                                style="
-                                                    width:100%;
-                                                    padding:10px 12px;
-                                                    border:2px solid #86efac;
-                                                    border-radius:8px;
-                                                    background:white;
-                                                    font-family:'SF Mono',Monaco,monospace;
-                                                    font-size:0.85rem;
-                                                    font-weight:700;
-                                                    color:#1e293b;
-                                                ">
-
-                                            <input type="text" value="${slot.revision || ''}"
-                                                oninput="cambiarRevisionSlot(${slot.idx}, this.value)"
-                                                placeholder="Rev..."
-                                                maxlength="20"
-                                                style="
-                                                    width:100%;
-                                                    padding:10px 12px;
-                                                    border:2px solid #cbd5e1;
-                                                    border-radius:8px;
-                                                    background:white;
-                                                    font-size:0.85rem;
-                                                    font-weight:700;
-                                                    color:#1e293b;
-                                                    text-align:center;
-                                                ">
+                                            <input type="text" value="${slot.codigoEscaneado || ''}" oninput="cambiarCodigoSlot(${slot.idx}, this.value)" placeholder="${slot.nombreEspecifico ? slot.nombreEspecifico : 'Nº Serie...'}" style="width:100%;padding:10px 12px;border:2px solid #86efac;border-radius:8px;background:white;font-family:'SF Mono',Monaco,monospace;font-size:0.85rem;font-weight:700;color:#1e293b;">
+                                            <input type="text" value="${slot.revision || ''}" oninput="cambiarRevisionSlot(${slot.idx}, this.value)" placeholder="Rev..." maxlength="20" style="width:100%;padding:10px 12px;border:2px solid #cbd5e1;border-radius:8px;background:white;font-size:0.85rem;font-weight:700;color:#1e293b;text-align:center;">
                                         </div>
                                     ` : ''}
                                 </div>
@@ -350,17 +264,9 @@ function renderModalEscaner() {
                 ${todoOk ? '✅ Todos escaneados' : `⏳ Faltan ${total - hechos}`}
             </div>
             <div style="display:flex;gap:10px;">
-                <button onclick="cerrarModalEscaner()" style="
-                    padding:12px 20px;border:1px solid #e5e7eb;border-radius:10px;
-                    background:white;color:#64748b;font-weight:700;cursor:pointer;
-                    font-size:0.85rem;font-family:inherit;
-                ">Cerrar</button>
+                <button onclick="cerrarModalEscaner()" style="padding:12px 20px;border:1px solid #e5e7eb;border-radius:10px;background:white;color:#64748b;font-weight:700;cursor:pointer;font-size:0.85rem;font-family:inherit;">Cerrar</button>
                 ${todoOk ? `
-                    <button onclick="guardarEscaneosEscaner()" style="
-                        padding:12px 24px;border:none;border-radius:10px;
-                        background:#10b981;color:white;font-weight:700;cursor:pointer;
-                        font-size:0.9rem;font-family:inherit;display:flex;align-items:center;gap:6px;
-                    ">💾 Guardar todo</button>
+                    <button onclick="guardarEscaneosEscaner()" style="padding:12px 24px;border:none;border-radius:10px;background:#10b981;color:white;font-weight:700;cursor:pointer;font-size:0.9rem;font-family:inherit;display:flex;align-items:center;gap:6px;">💾 Guardar todo</button>
                 ` : ''}
             </div>
         </div>
@@ -373,27 +279,19 @@ function renderModalEscaner() {
 function esSiguienteSlot(idx) {
     const ctx = window.APP._escanerActual;
     if (!ctx || !ctx.slots) return false;
-
     for (let i = 0; i < ctx.slots.length; i++) {
-        if (!ctx.slots[i].codigoEscaneado) {
-            return i === idx;
-        }
+        if (!ctx.slots[i].codigoEscaneado) return i === idx;
     }
     return false;
 }
 
 async function cerrarModalEscaner() {
     const ctx = window.APP._escanerActual;
-
     if (ctx?.camara) {
-        try {
-            await ctx.camara.stop();
-        } catch (e) {}
+        try { await ctx.camara.stop(); } catch (e) {}
         ctx.camara = null;
     }
-
     cerrarModal('modalEscaner');
-
     if (window.APP.operacionActiva) {
         const modelo = window.APP.modeloActivo || 'MS3';
         cargarMontajesOperacion(window.APP.operacionActiva, modelo);
@@ -403,56 +301,38 @@ async function cerrarModalEscaner() {
 function borrarEscaneoSlot(idx) {
     const ctx = window.APP._escanerActual;
     if (!ctx || !ctx.slots[idx]) return;
-
     ctx.slots[idx].codigoEscaneado = '';
     ctx.slots[idx].codigoOriginal = '';
     ctx.slots[idx].revision = '';
     ctx.slots[idx].escaneadoPor = '';
     ctx.slots[idx].fechaEscaneo = null;
     ctx.slots[idx].manual = false;
-
     renderModalEscaner();
 }
 
 async function abrirCamaraEscaner(idx) {
     document.getElementById('modalCamaraEscaner')?.remove();
-
     const ctx = window.APP._escanerActual;
     if (!ctx) return;
 
     const modal = document.createElement('div');
     modal.id = 'modalCamaraEscaner';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:100000;display:flex;flex-direction:column;';
-
     modal.innerHTML = `
-        <!-- CABECERA -->
         <div style="padding:14px 20px;color:white;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;">
             <div>
                 <div style="font-weight:700;font-size:1rem;">📷 Escaneando</div>
-                <div style="font-size:0.75rem;opacity:0.8;margin-top:2px;">
-                    Apunta al código del componente
-                </div>
+                <div style="font-size:0.75rem;opacity:0.8;margin-top:2px;">Apunta al código del componente</div>
             </div>
-            <button onclick="cerrarCamaraEscaner()" style="
-                background:rgba(255,255,255,0.2);border:none;color:white;
-                width:38px;height:38px;border-radius:10px;font-size:1.2rem;
-                cursor:pointer;display:flex;align-items:center;justify-content:center;
-            ">✕</button>
+            <button onclick="cerrarCamaraEscaner()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:38px;height:38px;border-radius:10px;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
         </div>
-
-        <!-- CÁMARA -->
         <div style="flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:10px;">
             <div id="lectorEscaner" style="width:100%;max-width:500px;"></div>
         </div>
-
-        <!-- FOOTER -->
         <div style="padding:16px 20px;text-align:center;color:white;flex-shrink:0;">
-            <div id="escanerEstado" style="font-size:0.85rem;opacity:0.9;">
-                Buscando código...
-            </div>
+            <div id="escanerEstado" style="font-size:0.85rem;opacity:0.9;">Buscando código...</div>
         </div>
     `;
-
     document.body.appendChild(modal);
 
     try {
@@ -461,24 +341,14 @@ async function abrirCamaraEscaner(idx) {
             cerrarCamaraEscaner();
             return;
         }
-
         const lector = new Html5Qrcode('lectorEscaner');
-
         await lector.start(
             { facingMode: 'environment' },
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 250 }
-            },
-            (decodedText) => {
-                onCodigoEscaneado(idx, decodedText);
-            },
-            () => {
-            }
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => { onCodigoEscaneado(idx, decodedText); },
+            () => {}
         );
-
         ctx.camara = lector;
-
     } catch (e) {
         console.error('❌ Error cámara:', e);
         toast('❌ No se pudo activar la cámara', '#ef4444');
@@ -488,40 +358,22 @@ async function abrirCamaraEscaner(idx) {
 
 async function cerrarCamaraEscaner() {
     const ctx = window.APP._escanerActual;
-
     if (ctx?.camara) {
-        try {
-            await ctx.camara.stop();
-        } catch (e) {}
+        try { await ctx.camara.stop(); } catch (e) {}
         ctx.camara = null;
     }
-
     document.getElementById('modalCamaraEscaner')?.remove();
 }
 
 async function onCodigoEscaneado(idx, codigoOriginal) {
-    try {
-        if (navigator.vibrate) navigator.vibrate(100);
-    } catch (e) {}
-
+    try { if (navigator.vibrate) navigator.vibrate(100); } catch (e) {}
     await cerrarCamaraEscaner();
-
     const codigoProcesado = procesarCodigoEscaner(codigoOriginal);
-
-    if (!codigoProcesado) {
-        toast('⚠️ El código no es válido', '#f59e0b');
-        return;
-    }
+    if (!codigoProcesado) { toast('⚠️ El código no es válido', '#f59e0b'); return; }
 
     const ctx = window.APP._escanerActual;
-    const yaExiste = ctx.slots.some((s, i) =>
-        i !== idx && s.codigoEscaneado === codigoProcesado
-    );
-
-    if (yaExiste) {
-        toast('⚠️ Ese código ya está escaneado en otro componente', '#f59e0b', 3000);
-        return;
-    }
+    const yaExiste = ctx.slots.some((s, i) => i !== idx && s.codigoEscaneado === codigoProcesado);
+    if (yaExiste) { toast('⚠️ Ese código ya está escaneado en otro componente', '#f59e0b', 3000); return; }
 
     ctx.slots[idx].codigoEscaneado = codigoProcesado;
     ctx.slots[idx].codigoOriginal = codigoOriginal;
@@ -530,87 +382,49 @@ async function onCodigoEscaneado(idx, codigoOriginal) {
     ctx.slots[idx].manual = false;
 
     toast(`✅ Escaneado: ${codigoProcesado}`, '#10b981', 2000);
-
     renderModalEscaner();
 
     const todos = ctx.slots.every(s => s.codigoEscaneado);
-    if (todos) {
-        setTimeout(() => {
-            guardarEscaneosEscaner();
-        }, 500);
-    }
+    if (todos) setTimeout(() => { guardarEscaneosEscaner(); }, 500);
 }
 
 function abrirModalEscanerManual(idx) {
     document.getElementById('modalEscanerManual')?.remove();
-
     const modal = document.createElement('div');
     modal.id = 'modalEscanerManual';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;';
-
     modal.innerHTML = `
         <div style="background:white;border-radius:18px;padding:24px;max-width:420px;width:100%;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
                 <h3 style="margin:0;color:#1e293b;font-size:1.05rem;">✍️ Escribir código</h3>
                 <button onclick="document.getElementById('modalEscanerManual').remove()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#64748b;">✕</button>
             </div>
-
-            <p style="font-size:0.82rem;color:#64748b;margin:0 0 12px 0;">
-                Si la cámara no lee el código, escríbelo aquí.
-            </p>
-
-   <div class="form-group">
-    <label style="display:block;font-size:0.8rem;font-weight:700;color:#475569;margin-bottom:6px;">
-        Código del componente
-    </label>
-    <input type="text" id="escanerManualInput" placeholder="Ej: BDM12345 67890" maxlength="80"
-        style="width:100%;padding:12px 14px;border:2px solid #cbd5e1;border-radius:10px;font-size:1rem;font-family:'SF Mono',Monaco,monospace;text-align:center;letter-spacing:0.05em;"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarEscanerManual(${idx});}">
-    <small style="color:#64748b;font-size:0.72rem;display:block;margin-top:6px;">
-        El código será procesado con la configuración del escáner.
-    </small>
-</div>
-
-<div class="form-group" style="margin-top:10px;">
-    <label style="display:block;font-size:0.8rem;font-weight:700;color:#475569;margin-bottom:6px;">
-        📝 Revisión (opcional)
-    </label>
-    <input type="text" id="escanerManualRevision" placeholder="Ej: A, R1..." maxlength="20"
-        style="width:100%;padding:12px 14px;border:2px solid #cbd5e1;border-radius:10px;font-size:1rem;text-align:center;font-weight:700;">
-</div>
-
+            <p style="font-size:0.82rem;color:#64748b;margin:0 0 12px 0;">Si la cámara no lee el código, escríbelo aquí.</p>
+            <div class="form-group">
+                <label style="display:block;font-size:0.8rem;font-weight:700;color:#475569;margin-bottom:6px;">Código del componente</label>
+                <input type="text" id="escanerManualInput" placeholder="Ej: BDM12345 67890" maxlength="80" style="width:100%;padding:12px 14px;border:2px solid #cbd5e1;border-radius:10px;font-size:1rem;font-family:'SF Mono',Monaco,monospace;text-align:center;letter-spacing:0.05em;" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarEscanerManual(${idx});}">
+            </div>
+            <div class="form-group" style="margin-top:10px;">
+                <label style="display:block;font-size:0.8rem;font-weight:700;color:#475569;margin-bottom:6px;">📝 Revisión (opcional)</label>
+                <input type="text" id="escanerManualRevision" placeholder="Ej: A, R1..." maxlength="20" style="width:100%;padding:12px 14px;border:2px solid #cbd5e1;border-radius:10px;font-size:1rem;text-align:center;font-weight:700;">
+            </div>
             <div style="background:#f0fdf4;border:1px solid #a7f3d0;border-radius:10px;padding:10px;margin-top:12px;">
                 <div style="font-size:0.7rem;color:#047857;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Vista previa</div>
-                <div id="escanerManualPreview" style="font-family:'SF Mono',Monaco,monospace;font-size:0.9rem;color:#1e293b;font-weight:700;">
-                    Esperando...
-                </div>
+                <div id="escanerManualPreview" style="font-family:'SF Mono',Monaco,monospace;font-size:0.9rem;color:#1e293b;font-weight:700;">Esperando...</div>
             </div>
-
             <div style="display:flex;gap:8px;margin-top:16px;">
-                <button onclick="document.getElementById('modalEscanerManual').remove()" style="
-                    flex:1;padding:12px;border:1px solid #e5e7eb;border-radius:10px;
-                    background:white;color:#64748b;font-weight:700;cursor:pointer;
-                    font-family:inherit;
-                ">Cancelar</button>
-                <button onclick="confirmarEscanerManual(${idx})" style="
-                    flex:1;padding:12px;border:none;border-radius:10px;
-                    background:#10b981;color:white;font-weight:700;cursor:pointer;
-                    font-family:inherit;
-                ">✅ Confirmar</button>
+                <button onclick="document.getElementById('modalEscanerManual').remove()" style="flex:1;padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:white;color:#64748b;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>
+                <button onclick="confirmarEscanerManual(${idx})" style="flex:1;padding:12px;border:none;border-radius:10px;background:#10b981;color:white;font-weight:700;cursor:pointer;font-family:inherit;">✅ Confirmar</button>
             </div>
         </div>
     `;
-
     document.body.appendChild(modal);
-
     const input = document.getElementById('escanerManualInput');
     const preview = document.getElementById('escanerManualPreview');
-
     input.addEventListener('input', () => {
         const procesado = procesarCodigoEscaner(input.value);
         preview.textContent = procesado || 'Esperando...';
     });
-
     setTimeout(() => input.focus(), 100);
 }
 
@@ -620,27 +434,13 @@ async function confirmarEscanerManual(idx) {
     const codigoOriginal = input?.value.trim() || '';
     const revision = inputRev?.value.trim() || '';
 
-    if (!codigoOriginal) {
-        toast('⚠️ Escribe un código', '#f59e0b');
-        return;
-    }
-
+    if (!codigoOriginal) { toast('⚠️ Escribe un código', '#f59e0b'); return; }
     const codigoProcesado = procesarCodigoEscaner(codigoOriginal);
-
-    if (!codigoProcesado) {
-        toast('⚠️ El código no es válido', '#f59e0b');
-        return;
-    }
+    if (!codigoProcesado) { toast('⚠️ El código no es válido', '#f59e0b'); return; }
 
     const ctx = window.APP._escanerActual;
-    const yaExiste = ctx.slots.some((s, i) =>
-        i !== idx && s.codigoEscaneado === codigoProcesado
-    );
-
-    if (yaExiste) {
-        toast('⚠️ Ese código ya está escaneado', '#f59e0b');
-        return;
-    }
+    const yaExiste = ctx.slots.some((s, i) => i !== idx && s.codigoEscaneado === codigoProcesado);
+    if (yaExiste) { toast('⚠️ Ese código ya está escaneado', '#f59e0b'); return; }
 
     ctx.slots[idx].codigoEscaneado = codigoProcesado;
     ctx.slots[idx].codigoOriginal = codigoOriginal;
@@ -650,15 +450,11 @@ async function confirmarEscanerManual(idx) {
     ctx.slots[idx].manual = true;
 
     document.getElementById('modalEscanerManual')?.remove();
-
     toast(`✅ Añadido: ${codigoProcesado}`, '#10b981');
-
     renderModalEscaner();
 
     const todos = ctx.slots.every(s => s.codigoEscaneado);
-    if (todos) {
-        setTimeout(() => guardarEscaneosEscaner(), 500);
-    }
+    if (todos) setTimeout(() => guardarEscaneosEscaner(), 500);
 }
 
 async function guardarEscaneosEscaner() {
@@ -666,20 +462,19 @@ async function guardarEscaneosEscaner() {
     if (!ctx) return;
 
     const { operacionId, montajeId, slots, numeroOperacion, montajeNombre } = ctx;
-
-const componentes = slots.map(slot => ({
-    materialId: slot.materialId,
-    materialNombre: slot.materialNombre,
-    codigoEscaneado: slot.codigoEscaneado || '',
-    codigoOriginal: slot.codigoOriginal || '',
-    revision: slot.revision || '',
-    escaneadoPor: slot.escaneadoPor || '',
-    fechaEscaneo: slot.fechaEscaneo || null,
-    manual: slot.manual || false
-}));
+    const componentes = slots.map(slot => ({
+        materialId: slot.materialId,
+        materialNombre: slot.materialNombre,
+        nombreEspecifico: slot.nombreEspecifico || '', // 🆕 Guardamos también el nombre específico
+        codigoEscaneado: slot.codigoEscaneado || '',
+        codigoOriginal: slot.codigoOriginal || '',
+        revision: slot.revision || '',
+        escaneadoPor: slot.escaneadoPor || '',
+        fechaEscaneo: slot.fechaEscaneo || null,
+        manual: slot.manual || false
+    }));
 
     const clave = operacionId + '_' + montajeId;
-
     const data = {
         operacionId,
         numeroOperacion,
@@ -696,10 +491,8 @@ const componentes = slots.map(slot => ({
 
     if (ok) {
         toast('✅ Escaneos guardados', '#10b981');
-
         if (!window.APP._componentesEscaneados) window.APP._componentesEscaneados = {};
         window.APP._componentesEscaneados[montajeId] = data;
-
         cerrarModalEscaner();
     } else {
         toast('❌ Error al guardar', '#ef4444');
@@ -709,16 +502,15 @@ const componentes = slots.map(slot => ({
 function cambiarCodigoSlot(idx, valor) {
     const ctx = window.APP._escanerActual;
     if (!ctx || !ctx.slots[idx]) return;
-
     ctx.slots[idx].codigoEscaneado = valor;
 }
 
 function cambiarRevisionSlot(idx, valor) {
     const ctx = window.APP._escanerActual;
     if (!ctx || !ctx.slots[idx]) return;
-
     ctx.slots[idx].revision = valor;
 }
+
 function aplicarRevisionGlobalEscaner() {
     const ctx = window.APP._escanerActual;
     if (!ctx || !ctx.slots) return;
@@ -733,7 +525,6 @@ function aplicarRevisionGlobalEscaner() {
 
     let aplicados = 0;
     ctx.slots.forEach(slot => {
-        // Solo aplicar a los que ya tienen un código escaneado
         if (slot.codigoEscaneado) {
             slot.revision = revision;
             aplicados++;
@@ -746,7 +537,23 @@ function aplicarRevisionGlobalEscaner() {
     }
 
     toast(`✅ Revisión "${revision}" aplicada a ${aplicados} componente${aplicados > 1 ? 's' : ''}`, '#10b981');
-    
-    // Refrescar la vista
     renderModalEscaner();
 }
+
+// EXPORTS (Para que el HTML encuentre las funciones)
+window.abrirModalEscaner = abrirModalEscaner;
+window.renderModalEscaner = renderModalEscaner;
+window.cerrarModalEscaner = cerrarModalEscaner;
+window.borrarEscaneoSlot = borrarEscaneoSlot;
+window.abrirCamaraEscaner = abrirCamaraEscaner;
+window.cerrarCamaraEscaner = cerrarCamaraEscaner;
+window.onCodigoEscaneado = onCodigoEscaneado;
+window.abrirModalEscanerManual = abrirModalEscanerManual;
+window.confirmarEscanerManual = confirmarEscanerManual;
+window.guardarEscaneosEscaner = guardarEscaneosEscaner;
+window.cambiarCodigoSlot = cambiarCodigoSlot;
+window.cambiarRevisionSlot = cambiarRevisionSlot;
+window.aplicarRevisionGlobalEscaner = aplicarRevisionGlobalEscaner;
+window.tieneComponentesAEscanear = tieneComponentesAEscanear;
+window.contarComponentesAEscanear = contarComponentesAEscanear;
+window.esSiguienteSlot = esSiguienteSlot;
