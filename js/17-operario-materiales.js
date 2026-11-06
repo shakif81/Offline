@@ -3,6 +3,201 @@ window.APP.materialesVistaActual = {
     estacionId: null
 };
 
+/* ═══════════════════════════════════════════════════════════
+   ESCÁNER INTEGRADO EN LA VISTA DE MATERIALES
+   ═══════════════════════════════════════════════════════════ */
+
+function abrirEscanerMateriales() {
+    document.getElementById('modalEscanerMateriales')?.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalEscanerMateriales';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:100000;display:flex;flex-direction:column;';
+
+    modal.innerHTML = `
+        <!-- CABECERA -->
+        <div style="padding:14px 20px;color:white;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;">
+            <div>
+                <div style="font-weight:700;font-size:1rem;">📷 Escanear Material</div>
+                <div style="font-size:0.75rem;opacity:0.8;margin-top:2px;">Apunta al código de barras de la etiqueta</div>
+            </div>
+            <button onclick="cerrarEscanerMateriales()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:38px;height:38px;border-radius:10px;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+
+        <!-- CÁMARA -->
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:10px;">
+            <div id="lectorMateriales" style="width:100%;max-width:500px;"></div>
+        </div>
+
+        <!-- INPUT MANUAL -->
+        <div style="padding:16px 20px;background:white;flex-shrink:0;border-radius:20px 20px 0 0;">
+            <label style="display:block;font-size:0.8rem;font-weight:700;color:#475569;margin-bottom:6px;">O escribe el código a mano:</label>
+            <div style="display:flex;gap:8px;">
+                <input type="text" id="escanerMatInputManual" placeholder="Ej: 3EH-1234-0001R" autocomplete="off" style="flex:1;padding:12px;border:2px solid #cbd5e1;border-radius:10px;font-size:1rem;font-family:'SF Mono',Monaco,monospace;font-weight:700;text-align:center;">
+                <button onclick="procesarEscanerMaterialManual()" style="padding:12px 20px;border:none;border-radius:10px;background:#6366f1;color:white;font-weight:700;cursor:pointer;font-family:inherit;">⏎ Procesar</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Iniciar cámara
+    if (typeof Html5Qrcode !== 'undefined') {
+        window.APP._camaraMateriales = new Html5Qrcode('lectorMateriales');
+        window.APP._camaraMateriales.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 250, height: 150 } }, // Rectángulo más ancho para códigos de barras
+            (decodedText) => {
+                procesarCodigoMaterial(decodedText);
+            },
+            () => {}
+        ).catch(e => console.error("Error cámara:", e));
+    }
+
+    // Listener para el input manual (Enter)
+    const input = document.getElementById('escanerMatInputManual');
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            procesarEscanerMaterialManual();
+        }
+    });
+    setTimeout(() => input.focus(), 300);
+}
+
+async function cerrarEscanerMateriales() {
+    if (window.APP._camaraMateriales) {
+        try { await window.APP._camaraMateriales.stop(); } catch (e) {}
+        window.APP._camaraMateriales = null;
+    }
+    document.getElementById('modalEscanerMateriales')?.remove();
+}
+
+function procesarEscanerMaterialManual() {
+    const input = document.getElementById('escanerMatInputManual');
+    if (!input || !input.value.trim()) return;
+    procesarCodigoMaterial(input.value.trim());
+}
+
+async function procesarCodigoMaterial(codigoOriginal) {
+    // 1. Aplicar la configuración del escáner
+    let codigo = codigoOriginal.trim();
+    if (typeof procesarCodigoEscaner === 'function') {
+        try { codigo = procesarCodigoEscaner(codigo) || codigo; } catch (e) {}
+    }
+
+    if (!codigo) return;
+
+    // 2. Buscar el material entre los pendientes de la operación activa
+    const operacionId = window.APP.materialesVistaActual?.operacionId || window.APP.operacionActiva;
+    if (!operacionId) {
+        toast('⚠️ Selecciona una operación primero', '#f59e0b');
+        return;
+    }
+
+    const [verificaciones, catalogoMat, montajes] = await Promise.all([
+        cargarFirebase('materiales_verificados', true),
+        cargarFirebase('materiales_catalogo', true),
+        cargarFirebase('montajes')
+    ]);
+
+    let materialEncontrado = null;
+    let infoEncontrada = null;
+
+    // Iterar por las estaciones de la operación
+    for (const clave in verificaciones) {
+        if (!clave.startsWith(operacionId + '_')) continue;
+        
+        const doc = verificaciones[clave];
+        if (!doc.materiales) continue;
+
+        for (const [claveItem, item] of Object.entries(doc.materiales)) {
+            // Solo buscamos materiales que estén pendientes de verificar (entregados)
+            if (item.estado !== 'entregado' && item.estado !== 'entregado_parcial') continue;
+
+            // El matId está en la claveItem: "montajeId__matId"
+            const matId = claveItem.split('__')[1];
+            
+            // Buscar en el catálogo para comparar el código
+            let cat = catalogoMat[matId];
+            if (!cat) {
+                cat = Object.values(catalogoMat).find(m => m.codigo === matId || m.nombre === matId);
+            }
+
+            if (cat && cat.codigo && cat.codigo.toLowerCase() === codigo.toLowerCase()) {
+                materialEncontrado = item;
+                infoEncontrada = {
+                    operacionId: operacionId,
+                    estacionId: doc.estacionId,
+                    montajeId: claveItem.split('__')[0],
+                    matId: matId,
+                    nombre: cat.nombre,
+                    cantidadTotal: item.cantidadTotal || 0,
+                    cantidadEntregada: item.cantidadEntregada || 0,
+                    estado: item.estado
+                };
+                break;
+            }
+        }
+        if (materialEncontrado) break;
+    }
+
+    if (!materialEncontrado) {
+        toast(`❌ El código "${codigo}" no está pendiente de verificar`, '#ef4444', 3000);
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        return;
+    }
+
+    // 3. Éxito: vibrar, cerrar cámara y abrir modal
+    if (navigator.vibrate) navigator.vibrate(200);
+    await cerrarEscanerMateriales();
+
+    // Reutilizamos el modal de verificación (abrirConfirmacionVerifMat o el que uses)
+    // Si tienes la función de verificarMaterialOperario directa, la llamamos:
+    if (typeof verificarMaterialOperario === 'function') {
+        // Preguntamos la cantidad antes de verificar
+        const cantidad = await preguntar(`Material: ${infoEncontrada.nombre}\nEntregado: ${infoEncontrada.cantidadEntregada}/${infoEncontrada.cantidadTotal}\n\n¿Cuántas has recibido?`, infoEncontrada.cantidadEntregada);
+        if (cantidad !== null) {
+            // Aquí iría la lógica de guardar, pero como ya tienes una función, la adaptamos
+            guardarVerificacionEscaneada(infoEncontrada, parseInt(cantidad) || 0);
+        }
+    }
+}
+
+async function guardarVerificacionEscaneada(info, cantidadRecibida) {
+    const clave = info.operacionId + '_' + info.estacionId;
+    const claveItem = info.montajeId + '__' + info.matId;
+
+    mostrarLoading('Verificando...');
+    try {
+        const data = await cargarFirebase('materiales_verificados', true);
+        const doc = data[clave];
+        if (!doc || !doc.materiales?.[claveItem]) throw new Error('No encontrado');
+
+        let nuevoEstado = cantidadRecibida >= info.cantidadTotal ? 'verificado' : 'entregado_parcial';
+
+        doc.materiales[claveItem].estado = nuevoEstado;
+        doc.materiales[claveItem].cantidadEntregada = cantidadRecibida;
+        doc.materiales[claveItem].verificadoPor = window.APP.operario?.nombre || 'Operario';
+        doc.materiales[claveItem].fechaVerificacion = new Date().toISOString();
+        doc.ultimaActualizacion = new Date().toISOString();
+
+        await guardarFirebase('materiales_verificados', clave, doc);
+        
+        ocultarLoading();
+        toast('✅ Material verificado', '#10b981');
+        
+        // Recargar vista
+        if (typeof cargarMaterialesOperario === 'function') cargarMaterialesOperario();
+
+    } catch (e) {
+        ocultarLoading();
+        console.error(e);
+        toast('❌ Error al guardar la verificación', '#ef4444');
+    }
+}
+
+
 async function cargarMaterialesOperario() {
     const cont = document.getElementById('materialesContainer');
     if (!cont) return;
