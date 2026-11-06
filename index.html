@@ -301,14 +301,20 @@
 
 <div class="page-section" id="verificar-materiales">
     <div class="content-header">
-        <div>
-            <h1 class="page-title">📷 Verificar Materiales</h1>
-            <p class="page-subtitle" id="verifMatInfo">Escanea la etiqueta para verificar el material recibido</p>
-        </div>
-        <button class="btn btn-outline btn-sm" onclick="cargarVerificarMateriales()" id="btnRefrescarVerifMat">
+    <div>
+        <h1 class="page-title">📦 Materiales</h1>
+        <p class="page-subtitle" id="materialesOpInfo">Verifica los materiales recibidos antes de empezar</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+        <!-- 🆕 BOTÓN DE ESCANEAR -->
+        <button class="btn btn-primary btn-sm" onclick="abrirEscanerMateriales()" style="padding:8px 14px; display:flex; align-items:center; gap:6px;">
+            📷 Escanear
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="cargarMaterialesOperario()" id="btnRefrescarMateriales" style="padding:8px 14px;">
             🔄 Refrescar
         </button>
     </div>
+</div>
     <div id="verifMatContainer">
         <div class="empty-state">⏳ Cargando...</div>
     </div>
