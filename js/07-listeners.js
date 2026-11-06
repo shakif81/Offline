@@ -701,6 +701,30 @@ db.collection('solicitudes_estanquidad').onSnapshot(snap => {
         }
     });
 });
+
+    // ═══════════════════════════════════════════════════════════
+// ESCÁNER - Sincronización de configuración en tiempo real
+// ═══════════════════════════════════════════════════════════
+if (window.APP.db) {
+    window.APP.db.collection('configuracion').doc('escaner').onSnapshot(doc => {
+        if (doc.exists) {
+            const config = doc.data();
+            window.APP.configEscaner = {
+                cortarHash: config.cortarHash !== false,
+                soloNumeros: config.soloNumeros !== false,
+                quitarComillas: config.quitarComillas !== false,
+                quitarGuiones: config.quitarGuiones === true,
+                quitarEspacios: config.quitarEspacios !== false,
+                mayusculas: config.mayusculas === true,
+                conservarGuion: config.conservarGuion !== false,
+                prefijos: Array.isArray(config.prefijos) ? config.prefijos : [],
+                longitud: parseInt(config.longitud) || 0,
+                _cambiosPendientes: false
+            };
+            console.log('✅ Configuración de escáner sincronizada al instante:', window.APP.configEscaner);
+        }
+    });
+}
     
     console.log('✅ Listeners registrados (con tiempo real)');
 }
