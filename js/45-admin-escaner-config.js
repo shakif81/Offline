@@ -18,25 +18,28 @@ async function cargarConfigEscaner() {
         const data = await cargarFirebase('configuracion', true);
         const config = data['escaner'];
 
-    if (config) {
-    window.APP.configEscaner = {
-        cortarHash: config.cortarHash !== false,
-        soloNumeros: config.soloNumeros !== false,
-        quitarComillas: config.quitarComillas !== false,
-        quitarGuiones: config.quitarGuiones === true,
-        quitarEspacios: config.quitarEspacios !== false,
-        mayusculas: config.mayusculas === true,
-        conservarGuion: config.conservarGuion !== false,
-        prefijos: Array.isArray(config.prefijos) ? config.prefijos : [],
-        longitud: parseInt(config.longitud) || 0,
-        _cambiosPendientes: false
-    };
-}
+        if (config) {
+            window.APP.configEscaner = {
+                cortarHash: config.cortarHash !== false,
+                soloNumeros: config.soloNumeros !== false,
+                quitarComillas: config.quitarComillas !== false,
+                quitarGuiones: config.quitarGuiones === true,
+                quitarEspacios: config.quitarEspacios !== false,
+                mayusculas: config.mayusculas === true,
+                conservarGuion: config.conservarGuion !== false,
+                prefijos: Array.isArray(config.prefijos) ? config.prefijos : [],
+                longitud: parseInt(config.longitud) || 0,
+                _cambiosPendientes: false
+            };
+        }
     } catch (e) {
         console.warn('⚠️ No se pudo cargar config del escáner:', e);
     }
 
-    renderFormularioConfigEscaner();
+    // 🆕 Solo renderizar si el formulario existe en el DOM (evita errores en operario)
+    if (document.getElementById('escSoloNumeros')) {
+        renderFormularioConfigEscaner();
+    }
 }
 
 function renderFormularioConfigEscaner() {
