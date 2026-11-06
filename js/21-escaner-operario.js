@@ -38,6 +38,11 @@ async function abrirModalEscaner(montajeId) {
         return;
     }
 
+    // 🆕 Forzar la carga de la configuración más reciente antes de escanear
+    if (typeof cargarConfigEscaner === 'function') {
+        await cargarConfigEscaner();
+    }
+
     const [montajes, materiales, operaciones] = await Promise.all([
         cargarFirebase('montajes', true),
         cargarFirebase('materiales_catalogo', true),
