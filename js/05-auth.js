@@ -66,8 +66,13 @@ async function confirmarLogin() {
     window.APP.operario = op;
     window.operarioActual = op;
 
-    document.getElementById('loginModal').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'grid';
+    // 🆕 Cargar configuración del escáner al iniciar sesión
+if (typeof cargarConfigEscaner === 'function') {
+    await cargarConfigEscaner();
+}
+
+document.getElementById('loginModal').style.display = 'none';
+document.getElementById('appContainer').style.display = 'grid';
 
     const rol = (op.puesto || '').toLowerCase().trim();
     let avatar = 'OP';
