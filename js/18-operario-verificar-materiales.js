@@ -163,50 +163,66 @@ function _vacioVerifMat(icono, titulo, texto) {
 function _calcularMaterialesPendientes(operacionId, modelo, montajes, estaciones, catalogoMat, verificaciones) {
     const pendientes = [];
 
+    // 1. Buscamos las estaciones de este modelo
     const estIds = Object.keys(estaciones).filter(eid => estaciones[eid].modelo === modelo);
 
+    // 2. Recorremos los montajes
     estIds.forEach(estId => {
         const clave = operacionId + '_' + estId;
-        const verif = verificaciones[clave];
-        if (!verif || !verif.materiales) return;
+        const verif = verificaciones[clave] || { materiales: {} };
 
-        Object.entries(verif.materiales).forEach(([claveItem, item]) => {
-            const estado = item.estado;
-            // 🆕 Mostrar todos excepto los que ya están verificados
-if (estado === 'verificado') return;
+        // Buscamos todos los montajes que pertenecen a esta estación y modelo
+        const montajesEst = Object.entries(montajes).filter(([mid, m]) => 
+            m.puntoId === estId && m.modelo === modelo
+        );
 
-            const partes = claveItem.split('__');
-            const montajeId = partes[0];
-            const matId = partes[1];
+        montajesEst.forEach(([montajeId, montaje]) => {
+            if (!montaje.materialesNecesarios) return;
 
-            const montaje = montajes[montajeId];
-            const est = estaciones[estId];
+            // Parseamos los materiales del montaje
+            montaje.materialesNecesarios.split('||').forEach(item => {
+                const partes = item.trim().split('=');
+                const matId = partes[0];
+                const cantidadTotal = parseInt(partes[1]) || 1;
+                if (!matId) return;
 
-            let cat = catalogoMat[matId];
-            if (!cat) {
-                cat = Object.values(catalogoMat).find(mm =>
-                    mm.codigo === matId || mm.nombre === matId
-                );
-            }
+                const claveItem = montajeId + '__' + matId;
+                
+                // Buscamos el estado en la colección de verificaciones
+                const itemGuardado = verif.materiales?.[claveItem] || {};
+                const estado = itemGuardado.estado || 'pendiente'; // Si no existe, está pendiente
 
-            pendientes.push({
-                opId: operacionId,
-                estId,
-                estNombre: est?.nombre || '—',
-                montajeId,
-                montajeNombre: montaje?.nombre || '—',
-                matId,
-                nombre: cat?.nombre || matId,
-                codigo: (cat?.codigo || '').trim(),
-                ubicacion: cat?.ubicacion || '',
-                cantidadTotal: item.cantidadTotal || 0,
-                cantidadEntregada: item.cantidadEntregada || 0,
-                estado,
-                claveItem
+                // 🆕 Si ya está verificado, no lo mostramos
+                if (estado === 'verificado') return;
+
+                // Buscamos el catálogo
+                let cat = catalogoMat[matId];
+                if (!cat) {
+                    cat = Object.values(catalogoMat).find(mm =>
+                        mm.codigo === matId || mm.nombre === matId
+                    );
+                }
+
+                pendientes.push({
+                    opId: operacionId,
+                    estId,
+                    estNombre: estaciones[estId]?.nombre || '—',
+                    montajeId,
+                    montajeNombre: montaje.nombre || '—',
+                    matId,
+                    nombre: cat?.nombre || matId,
+                    codigo: (cat?.codigo || '').trim(),
+                    ubicacion: cat?.ubicacion || '',
+                    cantidadTotal,
+                    cantidadEntregada: itemGuardado.cantidadEntregada || 0,
+                    estado,
+                    claveItem
+                });
             });
         });
     });
 
+    // Ordenar por montaje y luego por nombre del material
     pendientes.sort((a, b) => {
         if (a.montajeNombre !== b.montajeNombre) return a.montajeNombre.localeCompare(b.montajeNombre);
         return (a.nombre || '').localeCompare(b.nombre || '');
