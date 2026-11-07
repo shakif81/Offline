@@ -172,7 +172,8 @@ function _calcularMaterialesPendientes(operacionId, modelo, montajes, estaciones
 
         Object.entries(verif.materiales).forEach(([claveItem, item]) => {
             const estado = item.estado;
-            if (estado !== 'entregado' && estado !== 'entregado_parcial') return;
+            // 🆕 Mostrar todos excepto los que ya están verificados
+if (estado === 'verificado') return;
 
             const partes = claveItem.split('__');
             const montajeId = partes[0];
@@ -237,16 +238,19 @@ function _renderPendientesVerifMat(pendientes) {
         `;
     }
 
-    return pendientes.map((p, idx) => `
-        <button onclick="abrirConfirmacionVerifMat(${idx})"
+    return pendientes.map((p, idx) => {
+    const esPendiente = p.estado === 'pendiente' || p.estado === 'falta';
+    return `
+    <button ${esPendiente ? 'disabled' : ''} onclick="${esPendiente ? '' : `abrirConfirmacionVerifMat(${idx})`}"
             style="
-                width:100%;
-                background:#f8fafc;
-                border:1px solid #e5e7eb;
-                border-left:3px solid #6366f1;
+                width:100%;           
+                background:${esPendiente ? '#f1f5f9' : '#f8fafc'};
+                border:1px solid ${esPendiente ? '#cbd5e1' : '#e5e7eb'};
+                border-left:3px solid ${esPendiente ? '#94a3b8' : '#6366f1'};
+                opacity: ${esPendiente ? '0.7' : '1'};
+                cursor: ${esPendiente ? 'not-allowed' : 'pointer'};                
                 border-radius:10px;
-                padding:12px 14px;
-                cursor:pointer;
+                padding:12px 14px;                
                 text-align:left;
                 font-family:inherit;
                 display:flex;
@@ -271,11 +275,17 @@ function _renderPendientesVerifMat(pendientes) {
                 </div>
             </div>
             <div style="text-align:right;flex-shrink:0;">
-                <div style="font-size:0.85rem;font-weight:800;color:#1d4ed8;">
-                    ×${p.cantidadEntregada || p.cantidadTotal}
-                </div>
-                <div style="font-size:0.65rem;color:#94a3b8;font-weight:600;margin-top:2px;">uds</div>
-            </div>
+    ${esPendiente ? `
+        <div style="font-size:0.7rem;font-weight:700;color:#b45309;background:#fffbeb;padding:4px 8px;border-radius:6px;border:1px solid #fde68a;">
+            ⏳ Sin entregar
+        </div>
+    ` : `
+        <div style="font-size:0.85rem;font-weight:800;color:#1d4ed8;">
+            ×${p.cantidadEntregada || p.cantidadTotal}
+        </div>
+        <div style="font-size:0.65rem;color:#94a3b8;font-weight:600;margin-top:2px;">uds</div>
+    `}
+</div>
         </button>
     `).join('');
 }
