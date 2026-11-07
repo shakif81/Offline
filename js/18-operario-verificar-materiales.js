@@ -233,39 +233,43 @@ function _renderPendientesVerifMat(pendientes) {
             <div style="text-align:center;padding:2rem 1rem;color:#94a3b8;">
                 <div style="font-size:2.5rem;margin-bottom:8px;">✅</div>
                 <div style="font-weight:600;color:#1e293b;margin-bottom:4px;">Todo verificado</div>
-                <div style="font-size:0.85rem;">No hay materiales pendientes de verificar</div>
+                <div style="font-size:0.85rem;">No hay materiales pendientes en esta operación</div>
             </div>
         `;
     }
 
     return pendientes.map((p, idx) => {
-    const esPendiente = p.estado === 'pendiente' || p.estado === 'falta';
-    return `
-    <button ${esPendiente ? 'disabled' : ''} onclick="${esPendiente ? '' : `abrirConfirmacionVerifMat(${idx})`}"
+        // 🆕 Comprobamos si el material está pendiente de entrega o con falta
+        const esPendiente = p.estado === 'pendiente' || p.estado === 'falta';
+        
+        return `
+        <button ${esPendiente ? 'disabled' : ''} onclick="${esPendiente ? '' : `abrirConfirmacionVerifMat(${idx})`}"
             style="
-                width:100%;           
+                width:100%;
                 background:${esPendiente ? '#f1f5f9' : '#f8fafc'};
                 border:1px solid ${esPendiente ? '#cbd5e1' : '#e5e7eb'};
                 border-left:3px solid ${esPendiente ? '#94a3b8' : '#6366f1'};
-                opacity: ${esPendiente ? '0.7' : '1'};
-                cursor: ${esPendiente ? 'not-allowed' : 'pointer'};                
                 border-radius:10px;
-                padding:12px 14px;                
+                padding:12px 14px;
+                cursor:${esPendiente ? 'not-allowed' : 'pointer'};
                 text-align:left;
                 font-family:inherit;
                 display:flex;
                 align-items:center;
                 gap:12px;
                 transition:all 0.15s ease;
+                opacity:${esPendiente ? '0.7' : '1'};
             "
-            onmouseover="this.style.background='#eef2ff';this.style.borderColor='#c7d2fe';"
-            onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e5e7eb';">
-            <span style="font-size:1.3rem;flex-shrink:0;">📦</span>
+            ${esPendiente ? '' : `onmouseover="this.style.background='#eef2ff';this.style.borderColor='#c7d2fe';"`}
+            ${esPendiente ? '' : `onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e5e7eb';"`}>
+            
+            <span style="font-size:1.3rem;flex-shrink:0;${esPendiente ? 'filter:grayscale(1);' : ''}">📦</span>
+            
             <div style="flex:1;min-width:0;">
-                <div style="font-weight:700;font-size:0.88rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                <div style="font-weight:700;font-size:0.88rem;color:${esPendiente ? '#94a3b8' : '#1e293b'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                     ${p.nombre}
                 </div>
-                <div style="font-size:0.72rem;color:#64748b;margin-top:3px;font-family:'SF Mono',Monaco,monospace;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                <div style="font-size:0.72rem;color:${esPendiente ? '#cbd5e1' : '#64748b'};margin-top:3px;font-family:'SF Mono',Monaco,monospace;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                     ${p.codigo || '—'}
                 </div>
                 <div style="font-size:0.72rem;color:#94a3b8;margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -274,20 +278,22 @@ function _renderPendientesVerifMat(pendientes) {
                     <span>📦 ${p.montajeNombre}</span>
                 </div>
             </div>
+
             <div style="text-align:right;flex-shrink:0;">
-    ${esPendiente ? `
-        <div style="font-size:0.7rem;font-weight:700;color:#b45309;background:#fffbeb;padding:4px 8px;border-radius:6px;border:1px solid #fde68a;">
-            ⏳ Sin entregar
-        </div>
-    ` : `
-        <div style="font-size:0.85rem;font-weight:800;color:#1d4ed8;">
-            ×${p.cantidadEntregada || p.cantidadTotal}
-        </div>
-        <div style="font-size:0.65rem;color:#94a3b8;font-weight:600;margin-top:2px;">uds</div>
-    `}
-</div>
+                ${esPendiente ? `
+                    <div style="font-size:0.7rem;font-weight:700;color:#b45309;background:#fffbeb;padding:4px 8px;border-radius:6px;border:1px solid #fde68a;white-space:nowrap;">
+                        ⏳ Sin entregar
+                    </div>
+                ` : `
+                    <div style="font-size:0.85rem;font-weight:800;color:#1d4ed8;">
+                        ×${p.cantidadEntregada || p.cantidadTotal}
+                    </div>
+                    <div style="font-size:0.65rem;color:#94a3b8;font-weight:600;margin-top:2px;">uds</div>
+                `}
+            </div>
         </button>
-    `).join('');
+        `;
+    }).join('');
 }
 
 async function toggleCamaraVerifMat() {
