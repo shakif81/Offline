@@ -511,12 +511,16 @@ db.collection('componentes_escaneados').onSnapshot(snap => {
     }, 500);
 });
 
+// ═══════════════════════════════════════════════════════════
+// MATERIALES VERIFICADOS - Sincronización en tiempo real
+// ═══════════════════════════════════════════════════════════
 let timerMatVerif = null;
 let ultimoMatVerif = 0;
 
-db.collection('materiales_verificados').onSnapshot(() => {
+db.collection('materiales_verificados').onSnapshot(snap => {
     if (!window.APP.operario) return;
 
+    // Anti-parpadeo
     if (timerMatVerif) clearTimeout(timerMatVerif);
     timerMatVerif = setTimeout(() => {
         const ahora = Date.now();
@@ -526,14 +530,36 @@ db.collection('materiales_verificados').onSnapshot(() => {
         const rol = (window.APP.operario.puesto || '').toLowerCase();
         const esAdmin = rol.includes('admin') || rol.includes('supervisor');
 
+        // ─────────────────────────────────────────────
+        // 👤 OPERARIO → recargar vistas
+        // ─────────────────────────────────────────────
         if (!esAdmin) {
+            // 1. Pestaña normal de Materiales
             const enMateriales = document.getElementById('materiales')?.classList.contains('active');
-            if (!enMateriales) return;
-            if (document.getElementById('modalFaltaMaterial')) return;
-            if (typeof cargarMaterialesOperario === 'function') cargarMaterialesOperario();
+            if (enMateriales) {
+                if (document.getElementById('modalFaltaMaterial')) return;
+                if (typeof cargarMaterialesOperario === 'function') {
+                    cargarMaterialesOperario();
+                }
+            }
+
+            // 🆕 2. Pestaña de Verificar Materiales (Escáner)
+            const enVerificar = document.getElementById('verificar-materiales')?.classList.contains('active');
+            if (enVerificar) {
+                // Si el modal de la cámara está abierto, no recargar para no interrumpir el escaneo
+                if (!document.getElementById('modalEscanerMateriales')) {
+                    if (typeof cargarVerificarMateriales === 'function') {
+                        cargarVerificarMateriales();
+                    }
+                }
+            }
+            
             return;
         }
 
+        // ─────────────────────────────────────────────
+        // 👨‍💼 ADMIN → recargar panel Entregar Materiales
+        // ─────────────────────────────────────────────
         const adminActivo = document.getElementById('admin')?.classList.contains('active');
         if (!adminActivo) return;
 
@@ -545,7 +571,9 @@ db.collection('materiales_verificados').onSnapshot(() => {
         const selEst = document.getElementById('entregaEstacionSelect');
         if (!selOp?.value || !selEst?.value) return;
 
-        if (typeof cargarEntregaMateriales === 'function') cargarEntregaMateriales();
+        if (typeof cargarEntregaMateriales === 'function') {
+            cargarEntregaMateriales();
+        }
     }, 500);
 });
 
