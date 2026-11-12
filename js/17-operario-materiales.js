@@ -199,30 +199,22 @@ async function guardarVerificacionEscaneada(info, cantidadRecibida) {
 
 
 
-
 async function cargarMaterialesOperario() {
     const cont = document.getElementById('materialesContainer');
     if (!cont) return;
 
     cont.innerHTML = '<div class="empty-state">⏳ Cargando...</div>';
 
-    // 🆕 Añadimos la carga de componentes_escaneados
-    const [operaciones, estaciones, montajes, catalogoMat, verificaciones, escaneosGuardados] = await Promise.all([
+    // 🆕 Añadimos la carga de resistencias y escaneos
+    const [operaciones, estaciones, montajes, catalogoMat, verificaciones, escaneosGuardados, resistenciasGuardadas] = await Promise.all([
         cargarFirebase('operaciones', true),
         cargarFirebase('estaciones'),
         cargarFirebase('montajes'),
         cargarFirebase('materiales_catalogo'),
         cargarFirebase('materiales_verificados', true),
-        cargarFirebase('componentes_escaneados', true)
+        cargarFirebase('componentes_escaneados', true),
+        cargarFirebase('resistencias_montajes', true)
     ]);
-
-    // 🆕 Guardar en caché global para acceso rápido
-    if (!window.APP._componentesEscaneados) window.APP._componentesEscaneados = {};
-    Object.entries(escaneosGuardados).forEach(([clave, data]) => {
-        if (data.montajeId) {
-            window.APP._componentesEscaneados[data.montajeId] = data;
-        }
-    });
 
     if (!Object.keys(operaciones).length) {
         cont.innerHTML = '<div class="empty-state">📭 No hay operaciones creadas</div>';
@@ -230,7 +222,7 @@ async function cargarMaterialesOperario() {
     }
 
     // ─────────────────────────────────────────
-    // SELECTOR DE OPERACIÓN (por defecto la activa si existe)
+    // SELECTOR DE OPERACIÓN
     // ─────────────────────────────────────────
     const operacionIdActual = window.APP.materialesVistaActual?.operacionId
         || window.APP.operacionActiva
@@ -255,7 +247,85 @@ async function cargarMaterialesOperario() {
         });
 
     // ─────────────────────────────────────────
-    // HTML del selector + cabecera
+    // 🆕 RECOPILAR SERIES (Componentes + Resistencias)
+    // ─────────────────────────────────────────
+    let itemsConSerie = [];
+
+    // 1. Componentes escaneados
+    Object.entries(escaneosGuardados).forEach(([clave, data]) => {
+        if (data.operacionId === operacionIdActual) {
+            (data.componentes || []).forEach(c => {
+                if (c.codigoEscaneado) {
+                    itemsConSerie.push({
+                        tipo: 'Componente',
+                        nombre: c.materialNombre,
+                        serie: c.codigoEscaneado,
+                        extra: c.revision ? `Rev: ${c.revision}` : '',
+                        icono: '📷',
+                        color: '#1d4ed8',
+                        bg: '#eff6ff'
+                    });
+                }
+            });
+        }
+    });
+
+    // 2. Resistencias
+    Object.entries(resistenciasGuardadas).forEach(([clave, data]) => {
+        if (data.operacionId === operacionIdActual) {
+            (data.registros || []).forEach(r => {
+                if (r.numeroSerie) {
+                    itemsConSerie.push({
+                        tipo: 'Resistencia',
+                        nombre: r.nombreCorto || 'Resistencia',
+                        serie: r.numeroSerie,
+                        extra: r.lote ? `Lote: ${r.lote}` : '',
+                        icono: '⚡',
+                        color: '#b45309',
+                        bg: '#fffbeb'
+                    });
+                }
+            });
+        }
+    });
+
+    // Ordenar alfabéticamente por nombre
+    itemsConSerie.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    let htmlSeries = '';
+    if (itemsConSerie.length > 0) {
+        htmlSeries = `
+            <div style="background:white;border-radius:14px;padding:14px 16px;border:1px solid #e5e7eb;margin-bottom:1rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                    <div style="font-weight:700;font-size:0.95rem;color:#1e293b;display:flex;align-items:center;gap:6px;">
+                        📋 Registro de Series
+                    </div>
+                    <span style="background:#f1f5f9;color:#475569;padding:2px 10px;border-radius:99px;font-size:0.7rem;font-weight:700;">
+                        ${itemsConSerie.length} registros
+                    </span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;">
+                    ${itemsConSerie.map(item => `
+                        <div style="background:${item.bg};border:1px solid ${item.color}40;border-left:3px solid ${item.color};border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:1.2rem;">${item.icono}</span>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-weight:600;font-size:0.8rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                    ${item.nombre}
+                                </div>
+                                <div style="font-size:0.75rem;color:${item.color};font-weight:700;font-family:'SF Mono',Monaco,monospace;margin-top:2px;">
+                                    ${item.serie}
+                                </div>
+                                ${item.extra ? `<div style="font-size:0.65rem;color:#64748b;margin-top:2px;">${item.extra}</div>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    // ─────────────────────────────────────────
+    // HTML DEL SELECTOR
     // ─────────────────────────────────────────
     let html = `
         <div style="background:white;border-radius:14px;padding:14px 16px;border:1px solid #e5e7eb;margin-bottom:1rem;">
@@ -274,11 +344,11 @@ async function cargarMaterialesOperario() {
                 </div>
             </div>
         </div>
+        
+        <!-- 🆕 AQUI INYECTAMOS LA SECCIÓN DE SERIES -->
+        ${htmlSeries}
     `;
 
-    // ─────────────────────────────────────────
-    // Recorrer estaciones
-    // ─────────────────────────────────────────
     let totalMatGlobal = 0;
     let totalVerifGlobal = 0;
 
@@ -289,14 +359,12 @@ async function cargarMaterialesOperario() {
             .filter(([mid, m]) => m.puntoId === estId && m.modelo === opActual.modelo)
             .sort((a, b) => (parseInt(a[1].orden) || 0) - (parseInt(b[1].orden) || 0));
 
-        // Solo mostrar estaciones que tengan montajes con materiales
         const tieneMateriales = montajesEst.some(([mid, m]) => m.materialesNecesarios);
         if (!tieneMateriales) continue;
 
         const clave = operacionIdActual + '_' + estId;
         const verifActual = verificaciones[clave] || { materiales: {} };
 
-        // Contar materiales de esta estación
         let totalMat = 0;
         let totalVerif = 0;
         let totalEntregados = 0;
@@ -322,7 +390,6 @@ async function cargarMaterialesOperario() {
 
         html += `
             <div style="background:white;border-radius:14px;padding:14px 16px;border:1px solid ${colorEst}40;border-left:4px solid ${colorEst};">
-
                 <!-- CABECERA ESTACIÓN -->
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
                     <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
@@ -386,27 +453,12 @@ async function cargarMaterialesOperario() {
                 const codigo = cat?.codigo || codigoEmb || '';
                 const ubicacion = cat?.ubicacion || '';
                 const requiereEscaneo = cat?.requiereEscaneo === true;
-                const esResistencia = cat?.esResistencia === true;
 
                 const claveItem = mid + '__' + matId;
                 const itemGuardado = verifActual.materiales?.[claveItem] || {};
                 const estado = itemGuardado.estado || 'pendiente';
                 const cantEntregada = itemGuardado.cantidadEntregada ?? 0;
                 const cantFaltante = itemGuardado.cantidadFaltante ?? 0;
-
-                // 🆕 BUSCAR CÓDIGO ESCANEADO
-                let codigoEscaneado = '';
-                if (requiereEscaneo) {
-                    const escaneosMontaje = window.APP._componentesEscaneados?.[mid];
-                    if (escaneosMontaje && escaneosMontaje.componentes) {
-                        const compEscaneado = escaneosMontaje.componentes.find(c => 
-                            c.materialId === matId || c.materialId === codigo
-                        );
-                        if (compEscaneado && compEscaneado.codigoEscaneado) {
-                            codigoEscaneado = compEscaneado.codigoEscaneado;
-                        }
-                    }
-                }
 
                 // Colores y estilos por estado
                 let bg, border, textColor, iconoEstado, badgeTexto;
@@ -446,17 +498,6 @@ async function cargarMaterialesOperario() {
                                 ${nombre}
                                 ${codigo ? `<span style="font-family:'SF Mono',Monaco,monospace;font-size:0.7rem;color:#64748b;font-weight:400;">(${codigo})</span>` : ''}
                             </div>
-                            
-                            <!-- 🆕 CÓDIGO ESCANEADO -->
-                            ${codigoEscaneado ? `
-                                <div style="font-size:0.72rem;margin-top:4px;display:flex;align-items:center;gap:4px;">
-                                    <span style="color:#047857;font-weight:700;">📷 Escaneado:</span>
-                                    <span style="font-family:'SF Mono',Monaco,monospace;background:#ecfdf5;color:#047857;padding:2px 6px;border-radius:4px;font-weight:700;border:1px solid #a7f3d0;">
-                                        ${codigoEscaneado}
-                                    </span>
-                                </div>
-                            ` : ''}
-
                             ${ubicacion ? `<div style="font-size:0.7rem;color:#64748b;margin-top:2px;">📍 ${ubicacion}</div>` : ''}
                         </div>
                         <span style="
@@ -587,7 +628,6 @@ async function cargarMaterialesOperario() {
 
     html += '</div>';
 
-    // Resumen global arriba
     if (totalMatGlobal > 0) {
         const pctGlobal = Math.round((totalVerifGlobal / totalMatGlobal) * 100);
         const resumen = `
@@ -610,8 +650,7 @@ async function cargarMaterialesOperario() {
 
     cont.innerHTML = html;
 }
-
-
+                                    
 
 
 
