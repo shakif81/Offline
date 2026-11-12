@@ -198,26 +198,41 @@ async function guardarVerificacionEscaneada(info, cantidadRecibida) {
 }
 
 
+
+
 async function cargarMaterialesOperario() {
     const cont = document.getElementById('materialesContainer');
     if (!cont) return;
 
     cont.innerHTML = '<div class="empty-state">⏳ Cargando...</div>';
 
-    const [operaciones, estaciones, montajes, catalogoMat, verificaciones] = await Promise.all([
+    // 🆕 Añadimos la carga de componentes_escaneados
+    const [operaciones, estaciones, montajes, catalogoMat, verificaciones, escaneosGuardados] = await Promise.all([
         cargarFirebase('operaciones', true),
         cargarFirebase('estaciones'),
         cargarFirebase('montajes'),
         cargarFirebase('materiales_catalogo'),
-        cargarFirebase('materiales_verificados', true)
+        cargarFirebase('materiales_verificados', true),
+        cargarFirebase('componentes_escaneados', true)
     ]);
+
+    // 🆕 Guardar en caché global para acceso rápido
+    if (!window.APP._componentesEscaneados) window.APP._componentesEscaneados = {};
+    Object.entries(escaneosGuardados).forEach(([clave, data]) => {
+        if (data.montajeId) {
+            window.APP._componentesEscaneados[data.montajeId] = data;
+        }
+    });
 
     if (!Object.keys(operaciones).length) {
         cont.innerHTML = '<div class="empty-state">📭 No hay operaciones creadas</div>';
         return;
     }
 
-    const operacionIdActual = window.APP.materialesVistaActual.operacionId
+    // ─────────────────────────────────────────
+    // SELECTOR DE OPERACIÓN (por defecto la activa si existe)
+    // ─────────────────────────────────────────
+    const operacionIdActual = window.APP.materialesVistaActual?.operacionId
         || window.APP.operacionActiva
         || Object.keys(operaciones)[0];
 
@@ -227,8 +242,10 @@ async function cargarMaterialesOperario() {
         return;
     }
 
+    window.APP.materialesVistaActual = window.APP.materialesVistaActual || {};
     window.APP.materialesVistaActual.operacionId = operacionIdActual;
 
+    // Estaciones del modelo de la operación
     const estFiltradas = Object.entries(estaciones)
         .filter(([id, e]) => e.modelo === (opActual.modelo || 'MS3'))
         .sort((a, b) => {
@@ -237,6 +254,9 @@ async function cargarMaterialesOperario() {
             return numA - numB;
         });
 
+    // ─────────────────────────────────────────
+    // HTML del selector + cabecera
+    // ─────────────────────────────────────────
     let html = `
         <div style="background:white;border-radius:14px;padding:14px 16px;border:1px solid #e5e7eb;margin-bottom:1rem;">
             <div style="display:grid;grid-template-columns:1fr;gap:10px;">
@@ -256,8 +276,9 @@ async function cargarMaterialesOperario() {
         </div>
     `;
 
-    const esOperacionActiva = window.APP.operacionActiva === operacionIdActual;
-
+    // ─────────────────────────────────────────
+    // Recorrer estaciones
+    // ─────────────────────────────────────────
     let totalMatGlobal = 0;
     let totalVerifGlobal = 0;
 
@@ -268,12 +289,14 @@ async function cargarMaterialesOperario() {
             .filter(([mid, m]) => m.puntoId === estId && m.modelo === opActual.modelo)
             .sort((a, b) => (parseInt(a[1].orden) || 0) - (parseInt(b[1].orden) || 0));
 
+        // Solo mostrar estaciones que tengan montajes con materiales
         const tieneMateriales = montajesEst.some(([mid, m]) => m.materialesNecesarios);
         if (!tieneMateriales) continue;
 
         const clave = operacionIdActual + '_' + estId;
         const verifActual = verificaciones[clave] || { materiales: {} };
 
+        // Contar materiales de esta estación
         let totalMat = 0;
         let totalVerif = 0;
         let totalEntregados = 0;
@@ -345,10 +368,9 @@ async function cargarMaterialesOperario() {
             `;
 
             mats.forEach(item => {
-    const partes = item.split('=');
-    const matId = partes[0];
-    const cantidadTotal = parseInt(partes[1]) || 1;
-
+                const partes = item.split('=');
+                const matId = partes[0];
+                const cantidadTotal = parseInt(partes[1]) || 1;   
                 const cantidad = partes[1];
                 const nombreEmb = partes[2] ? decodeURIComponent(partes[2]) : '';
                 const codigoEmb = partes[3] ? decodeURIComponent(partes[3]) : '';
@@ -364,76 +386,100 @@ async function cargarMaterialesOperario() {
                 const codigo = cat?.codigo || codigoEmb || '';
                 const ubicacion = cat?.ubicacion || '';
                 const requiereEscaneo = cat?.requiereEscaneo === true;
+                const esResistencia = cat?.esResistencia === true;
 
                 const claveItem = mid + '__' + matId;
-const itemGuardado = verifActual.materiales?.[claveItem] || {};
-const estado = itemGuardado.estado || 'pendiente';
-const cantEntregada = itemGuardado.cantidadEntregada ?? 0;
-const cantFaltante = itemGuardado.cantidadFaltante ?? 0;
+                const itemGuardado = verifActual.materiales?.[claveItem] || {};
+                const estado = itemGuardado.estado || 'pendiente';
+                const cantEntregada = itemGuardado.cantidadEntregada ?? 0;
+                const cantFaltante = itemGuardado.cantidadFaltante ?? 0;
 
-let bg, border, textColor, iconoEstado, badgeTexto;
-if (estado === 'verificado') {
-    bg = '#ecfdf5'; border = '#a7f3d0'; textColor = '#047857';
-    iconoEstado = '✅'; badgeTexto = 'Verificado';
-} else if (estado === 'entregado_parcial') {
-    bg = '#eff6ff'; border = '#93c5fd'; textColor = '#1e40af';
-    iconoEstado = '🔵'; badgeTexto = `Parcial ${cantEntregada}/${cantidadTotal}`;
-} else if (estado === 'entregado') {
-    bg = '#eff6ff'; border = '#bfdbfe'; textColor = '#1d4ed8';
-    iconoEstado = '📥'; badgeTexto = 'Entregado';
-} else if (estado === 'falta') {
-    bg = '#fef2f2'; border = '#fecaca'; textColor = '#b91c1c';
-    iconoEstado = '⚠️'; badgeTexto = `Falta${cantFaltante ? ' ' + cantFaltante : ''}`;
-} else {
-    bg = '#fff7ed'; border = '#fed7aa'; textColor = '#c2410c';
-    iconoEstado = '⏳'; badgeTexto = 'Pendiente';
-}
+                // 🆕 BUSCAR CÓDIGO ESCANEADO
+                let codigoEscaneado = '';
+                if (requiereEscaneo) {
+                    const escaneosMontaje = window.APP._componentesEscaneados?.[mid];
+                    if (escaneosMontaje && escaneosMontaje.componentes) {
+                        const compEscaneado = escaneosMontaje.componentes.find(c => 
+                            c.materialId === matId || c.materialId === codigo
+                        );
+                        if (compEscaneado && compEscaneado.codigoEscaneado) {
+                            codigoEscaneado = compEscaneado.codigoEscaneado;
+                        }
+                    }
+                }
+
+                // Colores y estilos por estado
+                let bg, border, textColor, iconoEstado, badgeTexto;
+                if (estado === 'verificado') {
+                    bg = '#ecfdf5'; border = '#a7f3d0'; textColor = '#047857';
+                    iconoEstado = '✅'; badgeTexto = 'Verificado';
+                } else if (estado === 'entregado_parcial') {
+                    bg = '#eff6ff'; border = '#93c5fd'; textColor = '#1e40af';
+                    iconoEstado = '🔵'; badgeTexto = `Parcial ${cantEntregada}/${cantidadTotal}`;
+                } else if (estado === 'entregado') {
+                    bg = '#eff6ff'; border = '#bfdbfe'; textColor = '#1d4ed8';
+                    iconoEstado = '📥'; badgeTexto = 'Entregado';
+                } else if (estado === 'falta') {
+                    bg = '#fef2f2'; border = '#fecaca'; textColor = '#b91c1c';
+                    iconoEstado = '⚠️'; badgeTexto = `Falta${cantFaltante ? ' ' + cantFaltante : ''}`;
+                } else {
+                    bg = '#fff7ed'; border = '#fed7aa'; textColor = '#c2410c';
+                    iconoEstado = '⏳'; badgeTexto = 'Pendiente';
+                }
 
                 const puedeVerificar = estado === 'entregado';
                 const yaVerificado = estado === 'verificado';
 
                 html += `
-           <div style="
-    display:flex;flex-direction:column;gap:8px;
-    padding:10px 12px;
-    background:${bg};
-    border:1px solid ${border};
-    border-left:3px solid ${requiereEscaneo ? '#3b82f6' : '#f97316'};
-    border-radius:8px;
-">
-    <!-- FILA 1: icono + nombre completo -->
-    <div style="display:flex;align-items:flex-start;gap:10px;">
-        <span style="font-size:1.1rem;flex-shrink:0;line-height:1.3;">${requiereEscaneo ? '📷' : '🧪'}</span>
-        <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;font-size:0.85rem;color:#1e293b;line-height:1.3;word-break:break-word;">
-                ${nombre}
-                ${codigo ? `<span style="font-family:'SF Mono',Monaco,monospace;font-size:0.7rem;color:#64748b;font-weight:400;">(${codigo})</span>` : ''}
-            </div>
-            ${ubicacion ? `<div style="font-size:0.7rem;color:#64748b;margin-top:3px;">📍 ${ubicacion}</div>` : ''}
-        </div>
-    </div>
+                    <div style="
+                        display:flex;align-items:center;gap:10px;
+                        padding:10px 12px;
+                        background:${bg};
+                        border:1px solid ${border};
+                        border-left:3px solid ${requiereEscaneo ? '#3b82f6' : '#f97316'};
+                        border-radius:8px;
+                        flex-wrap:wrap;
+                    ">
+                        <span style="font-size:1.1rem;flex-shrink:0;">${requiereEscaneo ? '📷' : '🧪'}</span>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:600;font-size:0.85rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                ${nombre}
+                                ${codigo ? `<span style="font-family:'SF Mono',Monaco,monospace;font-size:0.7rem;color:#64748b;font-weight:400;">(${codigo})</span>` : ''}
+                            </div>
+                            
+                            <!-- 🆕 CÓDIGO ESCANEADO -->
+                            ${codigoEscaneado ? `
+                                <div style="font-size:0.72rem;margin-top:4px;display:flex;align-items:center;gap:4px;">
+                                    <span style="color:#047857;font-weight:700;">📷 Escaneado:</span>
+                                    <span style="font-family:'SF Mono',Monaco,monospace;background:#ecfdf5;color:#047857;padding:2px 6px;border-radius:4px;font-weight:700;border:1px solid #a7f3d0;">
+                                        ${codigoEscaneado}
+                                    </span>
+                                </div>
+                            ` : ''}
 
-    <!-- FILA 2: badges + botones -->
-    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-    <span style="
-        background:${textColor}18;
-        color:${textColor};
-        padding:3px 10px;
-        border-radius:99px;
-        font-size:0.7rem;
-        font-weight:700;
-        display:inline-flex;
-        align-items:center;
-        gap:4px;
-    ">${iconoEstado} ${badgeTexto}</span>
-    <span style="
-        background:#64748b18;
-        color:#475569;
-        padding:3px 10px;
-        border-radius:99px;
-        font-size:0.75rem;
-        font-weight:700;
-    ">×${cantidad || 1}</span>
+                            ${ubicacion ? `<div style="font-size:0.7rem;color:#64748b;margin-top:2px;">📍 ${ubicacion}</div>` : ''}
+                        </div>
+                        <span style="
+                            background:${textColor}18;
+                            color:${textColor};
+                            padding:3px 10px;
+                            border-radius:99px;
+                            font-size:0.7rem;
+                            font-weight:700;
+                            flex-shrink:0;
+                            display:inline-flex;
+                            align-items:center;
+                            gap:4px;
+                        ">${iconoEstado} ${badgeTexto}</span>
+                        <span style="
+                            background:#64748b18;
+                            color:#475569;
+                            padding:3px 10px;
+                            border-radius:99px;
+                            font-size:0.75rem;
+                            font-weight:700;
+                            flex-shrink:0;
+                        ">×${cantidad || 1}</span>
 
                      ${puedeVerificar && !yaVerificado ? `
     <button onclick="verificarMaterialOperario('${operacionIdActual}', '${estId}', '${mid}', '${matId}')"
@@ -475,6 +521,7 @@ if (estado === 'verificado') {
 ` : yaVerificado ? `
     <span style="font-size:0.7rem;color:#047857;font-weight:600;flex-shrink:0;">
         👤 ${itemGuardado.verificadoPor || '—'}
+        ${itemGuardado.fechaVerificacion ? ` · 📅 ${formatearFechaCorta(itemGuardado.fechaVerificacion)}` : ''}
     </span>
 ` : estado === 'falta' ? `
     <span style="font-size:0.7rem;color:#b91c1c;font-weight:600;flex-shrink:0;">
@@ -496,15 +543,15 @@ if (estado === 'verificado') {
         ✏️ Editar
     </button>
 ` : `
-    <span style="font-size:0.7rem;color:#94a3b8;font-weight:500;font-style:italic;">
+    <span style="font-size:0.7rem;color:#94a3b8;font-weight:500;flex-shrink:0;font-style:italic;">
         Pendiente de entrega
     </span>
 `}
-                        </div>
 
-                        ${itemGuardado.respuestaAdmin && estado !== 'verificado' && itemGuardado.estado !== 'verificado' ? `
+                        ${itemGuardado.respuestaAdmin && estado !== 'verificado' ? `
                             <div style="
                                 width:100%;
+                                margin-top:8px;
                                 padding:8px 12px;
                                 background:#eff6ff;
                                 border-left:3px solid #3b82f6;
@@ -540,6 +587,7 @@ if (estado === 'verificado') {
 
     html += '</div>';
 
+    // Resumen global arriba
     if (totalMatGlobal > 0) {
         const pctGlobal = Math.round((totalVerifGlobal / totalMatGlobal) * 100);
         const resumen = `
@@ -562,6 +610,19 @@ if (estado === 'verificado') {
 
     cont.innerHTML = html;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function cambiarOperacionMateriales(operacionId) {
     window.APP.materialesVistaActual.operacionId = operacionId;
