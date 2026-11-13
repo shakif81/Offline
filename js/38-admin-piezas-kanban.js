@@ -337,41 +337,47 @@ function actualizarPreviewPieza() {
     `;
 }
 
+
+
 async function guardarPiezaAdmin() {
     const id = document.getElementById('adminPiezaId').value || 'pieza_' + Date.now();
+    const esNueva = !document.getElementById('adminPiezaId').value; // 🆕 Saber si es nueva
     const nombre = document.getElementById('adminPiezaNombre').value.trim();
     const codigo = document.getElementById('adminPiezaCodigo').value.trim();
     const ubicacion = document.getElementById('adminPiezaUbicacion').value.trim();
     const stockActual = parseInt(document.getElementById('adminPiezaStockActual').value) || 0;
     const stockCritico = parseInt(document.getElementById('adminPiezaStockCritico').value) || 0;
 
+    // Validaciones
     if (!nombre) { alertar('El nombre es obligatorio', { tipo: 'warning' }); return; }
     if (!codigo) { alertar('El código es obligatorio', { tipo: 'warning' }); return; }
     if (nombre.length < 2) { alertar('El nombre es demasiado corto', { tipo: 'warning' }); return; }
 
-const piezas = await cargarFirebase('piezas_kanban');
+    const piezas = await cargarFirebase('piezas_kanban');
 
-const duplicadoCodigo = Object.entries(piezas).find(([oid, p]) =>
-    oid !== id && (p.codigo || '').toLowerCase().trim() === codigo.toLowerCase().trim()
-);
-if (duplicadoCodigo) {
-    alertar(
-        `⚠️ Ya existe una pieza con el código "${codigo}".\n\nPieza existente: "${duplicadoCodigo[1].nombre}"`,
-        { titulo: '🔍 Código duplicado', tipo: 'warning' }
+    // 1. Comprobar duplicado por CÓDIGO
+    const duplicadoCodigo = Object.entries(piezas).find(([oid, p]) =>
+        oid !== id && (p.codigo || '').toLowerCase().trim() === codigo.toLowerCase().trim()
     );
-    return;
-}
+    if (duplicadoCodigo) {
+        alertar(
+            `⚠️ Ya existe una pieza con el código "${codigo}".\n\nPieza existente: "${duplicadoCodigo[1].nombre}"`,
+            { titulo: '🔍 Código duplicado', tipo: 'warning' }
+        );
+        return;
+    }
 
-const duplicadoNombre = Object.entries(piezas).find(([oid, p]) =>
-    oid !== id && (p.nombre || '').toLowerCase().trim() === nombre.toLowerCase().trim()
-);
-if (duplicadoNombre) {
-    const ok = await confirmar(
-        `⚠️ Ya existe una pieza con el nombre "${nombre}" (código: ${duplicadoNombre[1].codigo || '—'}).\n\n¿Quieres crearla igualmente?`,
-        { titulo: '🔍 Nombre duplicado', tipo: 'warning', okTexto: '💾 Crear igual' }
+    // 2. Comprobar duplicado por NOMBRE (aviso, no bloqueante)
+    const duplicadoNombre = Object.entries(piezas).find(([oid, p]) =>
+        oid !== id && (p.nombre || '').toLowerCase().trim() === nombre.toLowerCase().trim()
     );
-    if (!ok) return;
-}
+    if (duplicadoNombre) {
+        const ok = await confirmar(
+            `⚠️ Ya existe una pieza con el nombre "${nombre}" (código: ${duplicadoNombre[1].codigo || '—'}).\n\n¿Quieres crearla igualmente?`,
+            { titulo: '🔍 Nombre duplicado', tipo: 'warning', okTexto: '💾 Crear igual' }
+        );
+        if (!ok) return;
+    }
 
     const data = {
         nombre: nombre,
@@ -383,6 +389,29 @@ if (duplicadoNombre) {
 
     mostrarLoading('Guardando pieza...');
     const ok = await guardarFirebase('piezas_kanban', id, data);
+    
+    // 🆕 Si es nueva y tiene stock inicial, registrar el movimiento de entrada
+    if (ok && esNueva && stockActual > 0) {
+        const movId = 'mov_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        await guardarFirebase('movimientos_kanban', movId, {
+            piezaId: id,
+            piezaCodigo: codigo,
+            piezaNombre: nombre,
+            tipo: 'entrada',
+            cantidad: stockActual,
+            stockAntes: 0,
+            stockDespues: stockActual,
+            motivo: 'Creación de pieza',
+            comentario: 'Stock inicial al crear la pieza',
+            operario: window.APP.operario?.nombre || 'Admin',
+            operacionId: '',
+            numeroOperacion: '',
+            montajeId: '',
+            montajeNombre: '',
+            fecha: new Date().toISOString()
+        });
+    }
+    
     ocultarLoading();
 
     if (ok) {
@@ -393,6 +422,12 @@ if (duplicadoNombre) {
         toast('❌ Error al guardar', '#ef4444');
     }
 }
+
+
+
+
+
+
 
 async function duplicarPiezaAdmin(id) {
     const piezas = await cargarFirebase('piezas_kanban');
