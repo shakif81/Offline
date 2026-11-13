@@ -578,35 +578,40 @@ db.collection('materiales_verificados').onSnapshot(snap => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// TQC - Badge del sidebar y Alerta en tiempo real
+// TQC - Alerta visual y Badge del sidebar en tiempo real
 // ═══════════════════════════════════════════════════════════
-let _primeraCargaTQC = true
-    db.collection('estaciones_qc').onSnapshot(snap => {
+let _primeraCargaTQC = true; // 🆕 Para evitar alertas al recargar la página
+
+db.collection('estaciones_qc').onSnapshot(snap => {
     if (!window.APP.operario) return;
 
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (!rol.includes('admin') && !rol.includes('supervisor')) return;
-if (_primeraCargaTQC) { _primeraCargaTQC = false; return; }
-    // 🆕 1. Alerta visual en tiempo real
-    snap.docChanges().forEach(change => {
-        if (change.type === 'added') {
-            const qc = change.doc.data();
-            if (qc.estado === 'pendiente') {
-                setTimeout(() => {
-                    mostrarAlertaAdmin({
-                        tipo: 'tqc',
-                        titulo: 'Estación Lista para TQC',
-                        subtitulo: 'Todos los montajes completados',
-                        operacion: qc.numeroOperacion,
-                        estacion: qc.estacionNombre || 'Estación',
-                        detalle: `Hay ${qc.totalMontajes || 'varios'} montajes listos para revisión de calidad.`
-                    });
-                }, 500);
-            }
-        }
-    });
 
-    // 2. Tu código actual del badge (déjalo como está)
+    // 1. 🆕 LANZAR LA ALERTA VISUAL
+    if (_primeraCargaTQC) {
+        _primeraCargaTQC = false;
+    } else {
+        snap.docChanges().forEach(change => {
+            if (change.type === 'added') {
+                const qc = change.doc.data();
+                if (qc.estado === 'pendiente') {
+                    setTimeout(() => {
+                        mostrarAlertaAdmin({
+                            tipo: 'tqc',
+                            titulo: 'Estación Lista para TQC',
+                            subtitulo: 'Todos los montajes completados',
+                            operacion: qc.numeroOperacion,
+                            estacion: qc.estacionNombre || 'Estación',
+                            detalle: `Hay ${qc.totalMontajes || 'varios'} montajes listos para revisión de calidad.`
+                        });
+                    }, 500);
+                }
+            }
+        });
+    }
+
+    // 2. ACTUALIZAR EL BADGE DEL MENÚ
     let pendientes = 0;
     snap.forEach(doc => {
         const qc = doc.data();
@@ -619,6 +624,7 @@ if (_primeraCargaTQC) { _primeraCargaTQC = false; return; }
         actualizarBadgeTQCSidebar(pendientes);
     }
 
+    // 3. RECARGAR EL PANEL SI ESTÁ ABIERTO
     const panelTqc = document.getElementById('adminPanelTqc');
     const adminActivo = document.getElementById('admin')?.classList.contains('active');
     if (adminActivo && panelTqc && panelTqc.style.display !== 'none') {
