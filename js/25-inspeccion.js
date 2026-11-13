@@ -92,19 +92,9 @@ function renderFormularioInspeccionAdmin() {
             </div>
 
             <!-- FORMULARIO NUEVA INCIDENCIA -->
-            <div style="display:flex;gap:8px;flex-wrap:wrap;flex-direction:column;">
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    <input type="text" id="inspNuevoPuntoTexto" placeholder="Escribe la incidencia o corrección..." maxlength="200" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;" onkeydown="if(event.key==='Enter'){event.preventDefault();añadirPuntoInspeccion();}">
-                    <button type="button" onclick="añadirPuntoInspeccion()" style="padding:10px 20px;border:none;border-radius:8px;background:#ef4444;color:white;font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;">⚠️ Añadir</button>
-                </div>
-                
-                <!-- 🆕 SUBIR FOTO -->
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <input type="file" id="inspNuevaFoto" accept="image/*" style="display:none;" onchange="document.getElementById('inspNuevaFotoLabel').innerHTML = this.files[0] ? '🖼️ ' + this.files[0].name : '📷 Adjuntar foto (Opcional)'">
-                    <button type="button" onclick="document.getElementById('inspNuevaFoto').click()" id="inspNuevaFotoLabel" style="padding:8px 12px;border:1px dashed #cbd5e1;border-radius:8px;background:white;color:#64748b;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                        📷 Adjuntar foto (Opcional)
-                    </button>
-                </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input type="text" id="inspNuevoPuntoTexto" placeholder="Escribe la incidencia o corrección..." maxlength="200" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-family:inherit;" onkeydown="if(event.key==='Enter'){event.preventDefault();añadirPuntoInspeccion();}">
+                <button type="button" onclick="añadirPuntoInspeccion()" style="padding:10px 20px;border:none;border-radius:8px;background:#ef4444;color:white;font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;">⚠️ Añadir</button>
             </div>
 
             <!-- LISTA DE PUNTOS -->
@@ -144,7 +134,7 @@ function renderPuntoAdmin(punto, idx) {
     const icono = aplicada ? '✅' : '⚠️';
 
     return `
-        <div style="background:${colorFondo};border:1px solid ${colorBorde}44;border-left:4px solid ${colorBorde};border-radius:10px;padding:12px 14px;">
+        <div style="background:${colorFondo};border:1px solid ${colorBorde}44;border-left:4px solid ${colorBorde};border-radius:10px;padding:12px 14px;margin-bottom:8px;">
             <div style="display:flex;align-items:flex-start;gap:10px;">
                 <span style="font-size:1.1rem;flex-shrink:0;">${icono}</span>
                 <div style="flex:1;min-width:0;">
@@ -152,29 +142,38 @@ function renderPuntoAdmin(punto, idx) {
                         ${punto.texto}
                     </div>
                     
-                    <!-- 🆕 GALERÍA DE FOTOS -->
+                    <!-- 🆕 GALERÍA DE FOTOS CON BOTÓN DE BORRAR -->
                     ${fotos.length > 0 ? `
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                            ${fotos.map(url => `
-                                <img src="${url}" onclick="verFotoGrande('${url}')" style="width:50px;height:50px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                            ${fotos.map((url, fIdx) => `
+                                <div style="position:relative;width:60px;height:60px;">
+                                    <img src="${url}" onclick="verFotoGrande('${url}')" style="width:100%;height:100%;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;">
+                                    <button onclick="quitarFotoIncidente(${idx}, ${fIdx})" style="position:absolute;top:-5px;right:-5px;background:#ef4444;color:white;border:2px solid white;border-radius:50%;width:22px;height:22px;font-size:0.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.2);" title="Quitar foto">✕</button>
+                                </div>
                             `).join('')}
                         </div>
                     ` : ''}
 
                     ${aplicada ? `
-                        <div style="font-size:0.72rem;color:#047857;font-weight:700;margin-top:6px;display:inline-flex;align-items:center;gap:4px;background:#ecfdf5;padding:3px 10px;border-radius:99px;border:1px solid #a7f3d0;">
+                        <div style="font-size:0.72rem;color:#047857;font-weight:700;margin-top:8px;display:inline-flex;align-items:center;gap:4px;background:#ecfdf5;padding:3px 10px;border-radius:99px;border:1px solid #a7f3d0;">
                             ✅ Corregida por ${correccion.aplicadaPor || '—'}
                         </div>
                     ` : `
-                        <div style="font-size:0.72rem;color:#b91c1c;font-weight:700;margin-top:6px;display:inline-flex;align-items:center;gap:4px;background:white;padding:3px 10px;border-radius:99px;border:1px solid #fecaca;">
+                        <div style="font-size:0.72rem;color:#b91c1c;font-weight:700;margin-top:8px;display:inline-flex;align-items:center;gap:4px;background:white;padding:3px 10px;border-radius:99px;border:1px solid #fecaca;">
                             ⏳ Pendiente de corregir
                         </div>
                     `}
                 </div>
                 
-                <!-- BOTONES EDITAR/BORRAR -->
-                <button type="button" onclick="editarPuntoInspeccion(${idx})" style="background:white;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#1d4ed8;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Editar">✏️</button>
-                <button type="button" onclick="quitarPuntoInspeccion(${idx})" style="background:white;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#64748b;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Quitar">✕</button>
+                <!-- BOTONES -->
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                    <!-- 🆕 SUBIR FOTO -->
+                    <input type="file" id="fotoInc_${idx}" accept="image/*" style="display:none;" onchange="subirFotoIncidente(${idx}, this)">
+                    <button type="button" onclick="document.getElementById('fotoInc_${idx}').click()" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#1d4ed8;font-size:0.85rem;display:flex;align-items:center;justify-content:center;" title="Añadir foto">📷</button>
+                    
+                    <button type="button" onclick="editarPuntoInspeccion(${idx})" style="background:white;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#1d4ed8;font-size:0.85rem;display:flex;align-items:center;justify-content:center;" title="Editar">✏️</button>
+                    <button type="button" onclick="quitarPuntoInspeccion(${idx})" style="background:white;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#64748b;font-size:0.85rem;display:flex;align-items:center;justify-content:center;" title="Quitar">✕</button>
+                </div>
             </div>
         </div>
     `;
@@ -192,10 +191,8 @@ function inspExiste(operacionId) {
 
 
 
-async function añadirPuntoInspeccion() {
+function añadirPuntoInspeccion() {
     const inp = document.getElementById('inspNuevoPuntoTexto');
-    const fileInput = document.getElementById('inspNuevaFoto');
-    const fileLabel = document.getElementById('inspNuevaFotoLabel');
     if (!inp) return;
 
     const texto = inp.value.trim();
@@ -204,22 +201,10 @@ async function añadirPuntoInspeccion() {
         return;
     }
 
-    let urlFoto = '';
-    
-    // 🆕 Subir foto si se ha seleccionado
-    if (fileInput && fileInput.files[0]) {
-        mostrarLoading('Subiendo foto...');
-        urlFoto = await subirACloudinary(fileInput.files[0]);
-        ocultarLoading();
-        if (!urlFoto) {
-            toast('⚠️ No se pudo subir la foto, pero se guardará el texto', '#f59e0b');
-        }
-    }
-
     const punto = {
         id: 'pt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         texto,
-        fotos: urlFoto ? [urlFoto] : [], // 🆕 Array de fotos
+        fotos: [], // 🆕 Inicializamos vacío
         estado: 'falla',
         correccion: {
             aplicada: false,
@@ -229,18 +214,52 @@ async function añadirPuntoInspeccion() {
     };
 
     window.APP._inspeccionAdmin.puntos.push(punto);
-    
-    // Limpiar inputs
     inp.value = '';
-    if (fileInput) fileInput.value = '';
-    if (fileLabel) fileLabel.innerHTML = '📷 Adjuntar foto (Opcional)';
-    
     inp.focus();
 
     renderFormularioInspeccionAdmin();
     toast('⚠️ Incidencia añadida', '#ef4444', 1200);
 }
 
+// 🆕 NUEVA FUNCIÓN: Subir foto a una incidencia concreta
+async function subirFotoIncidente(idx, input) {
+    const file = input?.files?.[0];
+    input.value = ''; // Limpiar input
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        toast('⚠️ La foto es demasiado grande (máx 5MB)', '#f59e0b');
+        return;
+    }
+
+    mostrarLoading('Subiendo foto...');
+    try {
+        const url = await subirACloudinary(file);
+        if (!url) throw new Error('Error subiendo');
+
+        const punto = window.APP._inspeccionAdmin.puntos[idx];
+        if (!punto.fotos) punto.fotos = [];
+        punto.fotos.push(url);
+        
+        ocultarLoading();
+        renderFormularioInspeccionAdmin();
+        toast('✅ Foto añadida', '#10b981', 1500);
+
+    } catch (e) {
+        ocultarLoading();
+        console.error(e);
+        toast('❌ Error al subir la foto', '#ef4444');
+    }
+}
+
+// 🆕 NUEVA FUNCIÓN: Quitar foto de una incidencia
+function quitarFotoIncidente(idx, fotoIdx) {
+    const punto = window.APP._inspeccionAdmin.puntos[idx];
+    if (punto && punto.fotos) {
+        punto.fotos.splice(fotoIdx, 1);
+        renderFormularioInspeccionAdmin();
+    }
+}
 
 
 async function editarPuntoInspeccion(idx) {
