@@ -580,22 +580,25 @@ db.collection('materiales_verificados').onSnapshot(snap => {
 // ═══════════════════════════════════════════════════════════
 // TQC - Alerta visual y Badge del sidebar en tiempo real
 // ═══════════════════════════════════════════════════════════
-let _primeraCargaTQC = true; // 🆕 Para evitar alertas al recargar la página
-
 db.collection('estaciones_qc').onSnapshot(snap => {
     if (!window.APP.operario) return;
 
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (!rol.includes('admin') && !rol.includes('supervisor')) return;
 
-    // 1. 🆕 LANZAR LA ALERTA VISUAL
-    if (_primeraCargaTQC) {
-        _primeraCargaTQC = false;
-    } else {
-        snap.docChanges().forEach(change => {
-            if (change.type === 'added') {
-                const qc = change.doc.data();
-                if (qc.estado === 'pendiente') {
+    // 1. LANZAR LA ALERTA VISUAL SI HAY UN CAMBIO RECIENTE
+    snap.docChanges().forEach(change => {
+        if (change.type === 'added' || change.type === 'modified') {
+            const qc = change.doc.data();
+            
+            // Si está pendiente o parcial (recién rechazada)
+            if (qc.estado === 'pendiente' || qc.estado === 'parcial') {
+                // Solo avisar si se ha creado/modificado en los últimos 30 segundos
+                const fechaRef = qc.fechaCreacion ? new Date(qc.fechaCreacion).getTime() : 0;
+                const diffSeg = (Date.now() - fechaRef) / 1000;
+
+                if (diffSeg < 30 && diffSeg >= 0) {
+                    console.log("🚨 Disparando alerta TQC para:", qc.estacionNombre);
                     setTimeout(() => {
                         mostrarAlertaAdmin({
                             tipo: 'tqc',
@@ -608,8 +611,8 @@ db.collection('estaciones_qc').onSnapshot(snap => {
                     }, 500);
                 }
             }
-        });
-    }
+        }
+    });
 
     // 2. ACTUALIZAR EL BADGE DEL MENÚ
     let pendientes = 0;
@@ -636,7 +639,6 @@ db.collection('estaciones_qc').onSnapshot(snap => {
         }
     }
 });
-
 // ═══════════════════════════════════════════════════════════
 // ESTANQUIDAD - Actualización en vivo para el Operario
 // ═══════════════════════════════════════════════════════════
@@ -679,61 +681,51 @@ db.collection('solicitudes_estanquidad').onSnapshot(snap => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// ESTANQUIDAD - Alerta y Actualización en tiempo real
+// ESTANQUIDAD - Alerta para el Admin
 // ═══════════════════════════════════════════════════════════
-let _primeraCargaEstanquidad = true;
-
 db.collection('solicitudes_estanquidad').onSnapshot(snap => {
     if (!window.APP.operario) return;
     
-    // Solo para Admin / Supervisor
     const rol = (window.APP.operario.puesto || '').toLowerCase();
     if (!rol.includes('admin') && !rol.includes('supervisor')) return;
 
-    // Ignorar la carga inicial al abrir la app
-    if (_primeraCargaEstanquidad) {
-        _primeraCargaEstanquidad = false;
-        return; 
-    }
-
-    // 🆕 1. Refrescar la vista del panel si el admin lo tiene abierto
-    const adminActivo = document.getElementById('admin')?.classList.contains('active');
-    const panelTqc = document.getElementById('adminPanelTqc');
-    const tqcVisible = adminActivo && panelTqc && panelTqc.style.display !== 'none';
-    
-    if (tqcVisible && typeof cargarSolicitudesEstanquidadAdmin === 'function') {
-        // Un pequeño delay para agrupar varios cambios seguidos y no parpadear
-        if (window.APP._timerRecargaEstanquidad) clearTimeout(window.APP._timerRecargaEstanquidad);
-        window.APP._timerRecargaEstanquidad = setTimeout(() => {
-            cargarSolicitudesEstanquidadAdmin();
-        }, 300);
-    }
-
-    // 🆕 2. Lanzar alertas si hay cambios recientes
+    // 1. LANZAR ALERTA SI ES RECIENTE
     snap.docChanges().forEach(change => {
         if (change.type === 'added' || change.type === 'modified') {
             const s = change.doc.data();
             
             if (s.estado === 'pendiente') {
-                // Ignorar si el cambio es muy viejo (ej: al recargar la app)
-                if (s.fechaSolicitud) {
-                    const diffSeg = (Date.now() - new Date(s.fechaSolicitud).getTime()) / 1000;
-                    if (diffSeg > 30) return;
-                }
+                const fechaRef = s.fechaSolicitud ? new Date(s.fechaSolicitud).getTime() : 0;
+                const diffSeg = (Date.now() - fechaRef) / 1000;
 
-                setTimeout(() => {
-                    mostrarAlertaAdmin({
-                        tipo: 'estanquidad',
-                        titulo: 'Nueva Solicitud de Estanquidad',
-                        subtitulo: `Solicitada por: ${s.operarioSolicita || 'Operario'}`,
-                        operacion: s.numeroOperacion,
-                        estacion: 'Estación de trabajo',
-                        detalle: 'El operario ha solicitado (o vuelto a solicitar) la prueba de estanquidad.'
-                    });
-                }, 500);
+                if (diffSeg < 30 && diffSeg >= 0) {
+                    console.log("🚨 Disparando alerta Estanquidad para:", s.estacionNombre);
+                    setTimeout(() => {
+                        mostrarAlertaAdmin({
+                            tipo: 'estanquidad',
+                            titulo: 'Nueva Solicitud de Estanquidad',
+                            subtitulo: `Solicitada por: ${s.operarioSolicita || 'Operario'}`,
+                            operacion: s.numeroOperacion,
+                            estacion: s.estacionNombre || 'Estación',
+                            detalle: 'El operario ha solicitado (o vuelto a solicitar) la prueba de estanquidad.'
+                        });
+                    }, 500);
+                }
             }
         }
     });
+
+    // 2. REFRESCAR VISTA SI ESTÁ ABIERTA
+    const adminActivo = document.getElementById('admin')?.classList.contains('active');
+    const panelTqc = document.getElementById('adminPanelTqc');
+    const tqcVisible = adminActivo && panelTqc && panelTqc.style.display !== 'none';
+    
+    if (tqcVisible && typeof cargarSolicitudesEstanquidadAdmin === 'function') {
+        if (window.APP._timerRecargaEstanquidad) clearTimeout(window.APP._timerRecargaEstanquidad);
+        window.APP._timerRecargaEstanquidad = setTimeout(() => {
+            cargarSolicitudesEstanquidadAdmin();
+        }, 300);
+    }
 });
 
     // ═══════════════════════════════════════════════════════════
