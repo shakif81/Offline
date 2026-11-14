@@ -191,72 +191,50 @@ async function cargarTQC() {
             (qc.montajesQC || []).map(m => m.operario).filter(Boolean)
         )];
 
-        return `
-            <div onclick="abrirRevisionQC('${clave}')"
-                style="
-                    background:white;
-                    border:1px solid ${colorBorde}44;
-                    border-left:4px solid ${colorBorde};
-                    border-radius:12px;
-                    padding:14px 16px;
-                    cursor:pointer;
-                    transition:all 0.15s ease;
-                "
-                onmouseover="this.style.transform='translateX(3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'"
-                onmouseout="this.style.transform='translateX(0)';this.style.boxShadow=''">
+        // Reemplaza el return de la tarjeta dentro de cargarTQC por este:
 
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-                    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-                        <span style="font-size:1.4rem;">🏭</span>
-                        <div style="min-width:0;">
-                            <div style="font-weight:700;font-size:0.95rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                ${qc.estacionNombre || 'Sin nombre'}
-                            </div>
-                            <div style="font-size:0.72rem;color:#64748b;margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                                <span style="background:#eef2ff;color:#4338ca;padding:1px 8px;border-radius:99px;font-weight:700;font-size:0.68rem;">
-                                    Op. ${qc.numeroOperacion || '—'}
-                                </span>
-                                <span style="color:#cbd5e1;">·</span>
-                                <span>${qc.modelo || 'MS3'}</span>
-                                <span style="color:#cbd5e1;">·</span>
-                                <span>📅 ${fechaTexto}</span>
+            return `
+                <div onclick="abrirRevisionQC('${clave}')"
+                    style="background:white;border:1px solid #e5e7eb;border-left:4px solid ${colorBorde};border-radius:12px;padding:16px;cursor:pointer;transition:all 0.2s ease;box-shadow:0 2px 4px rgba(0,0,0,0.02);display:flex;flex-direction:column;"
+                    onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 16px rgba(0,0,0,0.06)';"
+                    onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.02)';">
+
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <div style="width:40px;height:40px;background:#f8fafc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;">🏭</div>
+                            <div>
+                                <div style="font-weight:800;font-size:1rem;color:#1e293b;">${qc.estacionNombre || 'Estación'}</div>
+                                <div style="font-size:0.75rem;color:#64748b;margin-top:2px;display:flex;align-items:center;gap:6px;">
+                                    <span style="font-family:'SF Mono',Monaco,monospace;font-weight:700;color:#4338ca;background:#eef2ff;padding:1px 6px;border-radius:4px;">Op. ${qc.numeroOperacion || '—'}</span>
+                                    <span style="color:#cbd5e1;">•</span>
+                                    <span>${qc.modelo || 'MS3'}</span>
+                                </div>
                             </div>
                         </div>
+                        <span style="background:${bgBadge};color:${textBadge};padding:4px 10px;border-radius:8px;font-size:0.7rem;font-weight:800;display:flex;align-items:center;gap:4px;border:1px solid ${textBadge}30;">
+                            ${iconoBadge} ${textoBadge}
+                        </span>
                     </div>
-                    <span style="
-                        background:${colorFondo};
-                        color:${estadoColor};
-                        padding:4px 12px;
-                        border-radius:99px;
-                        font-size:0.72rem;
-                        font-weight:700;
-                        white-space:nowrap;
-                        flex-shrink:0;
-                    ">${estadoTexto}</span>
-                </div>
 
-                <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.75rem;padding-top:8px;border-top:1px solid #f1f5f9;">
-                    <span style="color:#475569;font-weight:600;">
-                        📦 ${qc.totalMontajes || 0} montaje${qc.totalMontajes !== 1 ? 's' : ''}
-                    </span>
-                    ${qc.montajesAprobados > 0 ? `
-                        <span style="color:#047857;font-weight:700;">
-                            ✅ ${qc.montajesAprobados} aprobado${qc.montajesAprobados !== 1 ? 's' : ''}
-                        </span>
-                    ` : ''}
-                    ${qc.montajesRechazados > 0 ? `
-                        <span style="color:#b91c1c;font-weight:700;">
-                            ❌ ${qc.montajesRechazados} rechazado${qc.montajesRechazados !== 1 ? 's' : ''}
-                        </span>
-                    ` : ''}
-                    ${operarios.length > 0 ? `
-                        <span style="color:#64748b;font-weight:600;margin-left:auto;">
-                            👤 ${operarios.join(', ')}
-                        </span>
+                    <!-- INFO + FLECHA -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f1f5f9;padding-top:12px;margin-bottom:12px;">
+                        <div style="display:flex;align-items:center;gap:12px;font-size:0.75rem;color:#64748b;font-weight:600;">
+                            <span>📦 ${qc.totalMontajes || 0} montajes</span>
+                            ${operarios.length > 0 ? `<span>👤 ${operarios.join(', ')}</span>` : ''}
+                        </div>
+                        <div style="font-size:1.2rem;color:#cbd5e1;" title="Ver detalles">→</div>
+                    </div>
+
+                    <!-- 🆕 BOTONES DE ACCIÓN RÁPIDA (Solo si está pendiente o parcial) -->
+                    ${(qc.estado === 'pendiente' || qc.estado === 'parcial') ? `
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="event.stopPropagation(); responderTQCDesdTarjeta('${clave}', 'aprobado')" style="flex:1;padding:8px;border:none;border-radius:8px;background:#ecfdf5;color:#047857;font-weight:700;font-size:0.75rem;cursor:pointer;font-family:inherit;border:1px solid #a7f3d0;transition:all 0.2s;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='#ecfdf5'">✅ Aprobar</button>
+                            <button onclick="event.stopPropagation(); responderTQCDesdTarjeta('${clave}', 'rechazado')" style="flex:1;padding:8px;border:none;border-radius:8px;background:#fef2f2;color:#b91c1c;font-weight:700;font-size:0.75rem;cursor:pointer;font-family:inherit;border:1px solid #fecaca;transition:all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">❌ Rechazar</button>
+                        </div>
                     ` : ''}
                 </div>
-            </div>
-        `;
+            `;
+        
     }).join('');
 }
 
