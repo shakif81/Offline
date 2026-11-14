@@ -866,26 +866,43 @@ function añadirHerramientaMontaje() {
     const opt = sel.options[sel.selectedIndex];
     const nombre = opt.dataset.nombre || id;
 
+    // 🆕 Aseguramos que el objeto existe
+    if (!window.APP.adminMontajeActual) {
+        window.APP.adminMontajeActual = { tornilleria: [], materiales: [], piezas: [], pasos: [], herramientas: [] };
+    }
+    
     const rec = window.APP.adminMontajeActual;
+    
+    // 🆕 Aseguramos que el array de herramientas existe
     if (!rec.herramientas) rec.herramientas = [];
     
-    if (rec.herramientas.find(h => h.nombre === nombre)) {
+    // Evitar duplicados
+    if (rec.herramientas.find(h => h.id === id)) {
         toast('⚠️ Esta herramienta ya está asignada', '#f59e0b');
         return;
     }
 
-    rec.herramientas.push({ id, nombre }); // Solo guardamos ID y nombre
+    rec.herramientas.push({ id, nombre });
 
     sel.value = '';
     renderHerramientasMontaje();
     toast('✅ Herramienta añadida', '#10b981', 1500);
 }
+
 function renderHerramientasMontaje() {
     const cont = document.getElementById('adminMontajeHerrLista');
     if (!cont) return;
 
-    const rec = window.APP.adminMontajeActual || { herramientas: [] };
-    const items = rec.herramientas || [];
+    // 🆕 Aseguramos que existe el objeto y el array
+    if (!window.APP.adminMontajeActual) {
+        window.APP.adminMontajeActual = { herramientas: [] };
+    }
+    if (!window.APP.adminMontajeActual.herramientas) {
+        window.APP.adminMontajeActual.herramientas = [];
+    }
+
+    const rec = window.APP.adminMontajeActual;
+    const items = rec.herramientas;
 
     const elCount = document.getElementById('adminMontajeHerrCount');
     if (elCount) elCount.textContent = `(${items.length})`;
@@ -896,19 +913,28 @@ function renderHerramientasMontaje() {
     }
 
     cont.innerHTML = items.map((h, idx) => `
-    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
-        <span style="font-size:1.1rem;">🔧</span>
-        <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;font-size:0.85rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                ${h.nombre}
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.1rem;">🔧</span>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:0.85rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    ${h.nombre}
+                </div>
             </div>
+            <button type="button" onclick="quitarHerramientaMontaje(${idx})"
+                style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#b91c1c;font-size:0.9rem;display:flex;align-items:center;justify-content:center;"
+                title="Quitar">✕</button>
         </div>
-        <button type="button" onclick="quitarHerramientaMontaje(${idx})"
-            style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;width:30px;height:30px;cursor:pointer;color:#b91c1c;font-size:0.9rem;display:flex;align-items:center;justify-content:center;">
-            ✕
-        </button>
-    </div>
-`).join('');
+    `).join('');
 }
 
+function quitarHerramientaMontaje(idx) {
+    // 🆕 Comprobación de seguridad antes de eliminar
+    if (!window.APP.adminMontajeActual || !window.APP.adminMontajeActual.herramientas) return;
+    
+    const rec = window.APP.adminMontajeActual;
+    if (!rec.herramientas[idx]) return;
 
+    rec.herramientas.splice(idx, 1);
+    renderHerramientasMontaje();
+    toast('🗑️ Herramienta eliminada', '#f59e0b', 1200);
+}
