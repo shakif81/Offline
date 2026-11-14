@@ -1550,34 +1550,46 @@
         </div>
     </div>
 </div>
-<div class="admin-panel" id="adminPanelTqc" style="display:none;">
+
+          <div class="admin-panel" id="adminPanelTqc" style="display:none;">
     <div class="panel">
-        <h3>🔍 Control de Calidad (TQC)</h3>
-        <p style="font-size:0.85rem;color:#64748b;margin-bottom:1rem;">
-            Revisa las estaciones completadas y aprueba o rechaza los montajes.
-        </p>
+        <!-- CABECERA -->
+        <div style="margin-bottom: 1.5rem;">
+            <h3 style="margin:0;font-size:1.2rem;color:#1e293b;">🔍 Control de Calidad (TQC)</h3>
+            <p style="font-size:0.85rem;color:#64748b;margin-top:4px;">Revisa las estanquidades y las estaciones completadas.</p>
+        </div>
 
-      <!-- 🫧 CONTENEDOR DE SOLICITUDES DE ESTANQUIDAD -->
-<div id="tqcEstanquidadContainer" style="margin-bottom: 2rem;"></div>
-
-        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;">
-            <select id="tqcFiltroEstado" onchange="cargarTQC()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+        <!-- FILTROS GLOBALES -->
+        <div style="display:flex;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center;background:white;padding:12px 16px;border-radius:12px;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:0.85rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.05em;">Filtros TQC:</span>
+            </div>
+            
+            <select id="tqcFiltroEstado" onchange="cargarTQC()" style="padding:8px 32px 8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
                 <option value="pendiente">⏳ Pendientes</option>
                 <option value="parcial">🔄 Parcialmente rechazadas</option>
                 <option value="aprobado">✅ Aprobadas</option>
                 <option value="todas">📋 Todas</option>
             </select>
-            <select id="tqcFiltroOperacion" onchange="cargarTQC()" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
+
+            <select id="tqcFiltroOperacion" onchange="cargarTQC()" style="padding:8px 32px 8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;color:#1e293b;background:white;cursor:pointer;font-family:inherit;">
                 <option value="todas">Todas las operaciones</option>
             </select>
-            <div id="tqcContador" style="margin-left:auto;font-size:0.78rem;color:#64748b;font-weight:600;">0 estaciones</div>
+
+            <div id="tqcContador" style="margin-left:auto;font-size:0.8rem;color:#64748b;font-weight:600;background:#f1f5f9;padding:4px 12px;border-radius:99px;">0 estaciones</div>
         </div>
 
-        <div id="tqcListaEstaciones" style="display:flex;flex-direction:column;gap:10px;">
-            <div class="empty-state">⏳ Cargando...</div>
+        <!-- SECCIÓN 1: ESTANQUIDADES -->
+        <div id="tqcEstanquidadContainer"></div>
+
+        <!-- SECCIÓN 2: ESTACIONES -->
+        <div style="margin-top: 1.5rem;">
+            <div id="tqcListaEstaciones" style="display:flex;flex-direction:column;gap:10px;">
+                <div class="empty-state">⏳ Cargando estaciones...</div>
+            </div>
         </div>
     </div>
-</div>
+          </div>
 
         </div>
 
