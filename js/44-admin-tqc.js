@@ -238,6 +238,79 @@ async function cargarTQC() {
     }).join('');
 }
 
+async function responderTQCDesdTarjeta(clave, nuevoEstado) {
+    let motivo = '';
+    
+    // Si es rechazo, pedimos el motivo
+    if (nuevoEstado === 'rechazado') {
+        motivo = await preguntar(
+            'Motivo del rechazo (el operario lo verá):',
+            'Ej: Faltan aprietes en la base'
+        );
+        if (motivo === null) return; // Cancelado
+        if (!motivo.trim()) {
+            toast('⚠️ Escribe un motivo para rechazar', '#f59e0b');
+            return;
+        }
+    } else {
+        const ok = await confirmar('¿Aprobar toda la estación?');
+        if (!ok) return;
+    }
+
+    mostrarLoading('Guardando revisión...');
+    try {
+        const qcs = await cargarFirebase('estaciones_qc', true);
+        const qc = qcs[clave];
+        if (!qc) throw new Error('QC no encontrado');
+
+        // 1. Actualizar documento estación (estaciones_qc)
+        qc.estado = nuevoEstado === 'aprobado' ? 'aprobado' : 'parcial';
+        qc.revisor = window.APP.operario?.nombre || 'Admin';
+        qc.fechaUltimaRevision = new Date().toISOString();
+        qc.motivoRechazo = motivo;
+
+        // Actualizar montajes dentro del array
+        qc.montajesQC.forEach(m => {
+            m.estado = nuevoEstado;
+            m.motivoRechazo = motivo;
+            m.revisadoPor = qc.revisor;
+            m.fechaRevision = qc.fechaUltimaRevision;
+        });
+
+        await guardarFirebase('estaciones_qc', clave, qc);
+
+        // 2. Actualizar historial de montajes (historial_montajes)
+        const historial = await cargarFirebase('historial_montajes', true);
+        
+        for (const m of qc.montajesQC) {
+            const histId = m.historialId;
+            if (!histId || !historial[histId]) continue;
+
+            const h = historial[histId];
+            await guardarFirebase('historial_montajes', histId, {
+                qcEstado: nuevoEstado,
+                qcComentario: motivo,
+                qcRevisor: qc.revisor,
+                qcFecha: qc.fechaUltimaRevision,
+                qcReenvios: nuevoEstado === 'rechazado' ? (h.qcReenvios || 0) + 1 : (h.qcReenvios || 0),
+                notificacionVista: false
+            });
+        }
+
+        ocultarLoading();
+        toast(`✅ Estación ${nuevoEstado === 'aprobado' ? 'Aprobada' : 'Rechazada'}`, nuevoEstado === 'aprobado' ? '#10b981' : '#ef4444');
+        
+        // Recargar la lista de tarjetas
+        cargarTQC();
+
+    } catch (e) {
+        ocultarLoading();
+        console.error('❌ Error en responderTQCDesdTarjeta:', e);
+        toast('❌ Error al guardar la revisión', '#ef4444');
+    }
+}
+
+
 function actualizarBadgeTQCSidebar(n) {
     const badge = document.getElementById('badgeTQCSidebar');
     if (!badge) return;
