@@ -154,11 +154,7 @@ async function cargarTQC() {
             <div class="empty-state">
                 <div style="font-size:2.5rem;margin-bottom:12px;">✅</div>
                 <div style="font-weight:600;color:#1e293b;margin-bottom:4px;">Nada pendiente</div>
-                <div style="font-size:0.85rem;color:#94a3b8;">
-                    ${filtroEstado === 'pendiente' 
-                        ? 'No hay estaciones esperando revisión' 
-                        : 'Prueba otros filtros'}
-                </div>
+                <div style="font-size:0.85rem;color:#94a3b8;">No hay estaciones esperando revisión con estos filtros.</div>
             </div>
         `;
         return;
@@ -908,45 +904,46 @@ async function cargarSolicitudesEstanquidadAdmin() {
     const cont = document.getElementById('tqcEstanquidadContainer');
     if (!cont) return;
 
-    cont.innerHTML = '<div class="empty-state">⏳ Cargando solicitudes...</div>';
+    cont.innerHTML = '';
 
     const solicitudes = await cargarFirebase('solicitudes_estanquidad', true);
     const arr = Object.entries(solicitudes)
         .filter(([id, s]) => s.estado === 'pendiente')
         .sort((a, b) => new Date(a[1].fechaSolicitud) - new Date(b[1].fechaSolicitud));
 
-    if (!arr.length) {
-        cont.innerHTML = `
-            <div style="background:#f0fdf4;border:1px solid #a7f3d0;border-radius:12px;padding:16px;text-align:center;color:#047857;font-weight:600;font-size:0.9rem;">
-                ✅ No hay solicitudes de estanquidad pendientes
-            </div>
-        `;
-        return;
-    }
+    if (!arr.length) return; // Si no hay, no mostramos la sección
 
     let html = `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
             <span style="font-size:1.2rem;">🫧</span>
-            <h4 style="margin:0;color:#1e293b;font-size:1rem;">Solicitudes de Estanquidad Pendientes</h4>
-            <span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:99px;font-size:0.7rem;font-weight:700;">${arr.length}</span>
+            <h4 style="margin:0;color:#1e293b;font-size:1.05rem;font-weight:800;">Solicitudes de Estanquidad</h4>
+            <span style="background:#fef3c7;color:#b45309;padding:2px 10px;border-radius:99px;font-size:0.75rem;font-weight:700;border:1px solid #fde68a;">${arr.length} pendientes</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;">
     `;
 
     arr.forEach(([id, s]) => {
         const fecha = new Date(s.fechaSolicitud).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        
         html += `
-            <div style="background:white;border:1px solid #fed7aa;border-left:4px solid #f59e0b;border-radius:12px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,0.05);">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-                    <div>
-                        <div style="font-weight:800;color:#1e293b;font-size:0.95rem;">Op. ${s.numeroOperacion || '—'}</div>
-                        <div style="font-size:0.75rem;color:#64748b;margin-top:2px;">📍 Estación ${s.estacionId.slice(-4)} · 👤 ${s.operarioSolicita}</div>
-                        <div style="font-size:0.7rem;color:#94a3b8;margin-top:2px;">📅 ${fecha}</div>
+            <div style="background:white;border:1px solid #e5e7eb;border-left:4px solid #0ea5e9;border-radius:12px;padding:16px;box-shadow:0 2px 4px rgba(0,0,0,0.02);display:flex;flex-direction:column;justify-content:space-between;">
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <div style="width:40px;height:40px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;">🫧</div>
+                            <div>
+                                <div style="font-weight:800;color:#1e293b;font-size:1rem;">Op. ${s.numeroOperacion || '—'}</div>
+                                <div style="font-size:0.75rem;color:#64748b;margin-top:2px;">
+                                    📍 ${s.estacionNombre || 'Estación'} · 👤 ${s.operarioSolicita}
+                                </div>
+                            </div>
+                        </div>
+                        <span style="background:#f8fafc;color:#475569;padding:4px 8px;border-radius:6px;font-size:0.65rem;font-weight:700;">⏱️ ${fecha}</span>
                     </div>
                 </div>
-                <div style="display:flex;gap:8px;margin-top:12px;">
-                    <button onclick="responderEstanquidad('${id}', 'aprobada')" style="flex:1;padding:8px;border:none;border-radius:8px;background:#10b981;color:white;font-weight:700;font-size:0.75rem;cursor:pointer;font-family:inherit;">✅ Aprobar</button>
-                    <button onclick="responderEstanquidad('${id}', 'rechazada')" style="flex:1;padding:8px;border:none;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-weight:700;font-size:0.75rem;cursor:pointer;font-family:inherit;">❌ Rechazar</button>
+                <div style="display:flex;gap:8px;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:12px;">
+                    <button onclick="responderEstanquidad('${id}', 'aprobada')" style="flex:1;padding:10px;border:none;border-radius:8px;background:#ecfdf5;color:#047857;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:inherit;border:1px solid #a7f3d0;transition:all 0.2s;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='#ecfdf5'">✅ Aprobar</button>
+                    <button onclick="responderEstanquidad('${id}', 'rechazada')" style="flex:1;padding:10px;border:none;border-radius:8px;background:#fef2f2;color:#b91c1c;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:inherit;border:1px solid #fecaca;transition:all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">❌ Rechazar</button>
                 </div>
             </div>
         `;
