@@ -592,7 +592,7 @@ db.collection('estaciones_qc').onSnapshot(snap => {
             const qc = change.doc.data();
             
             // Si está pendiente o parcial (recién rechazada)
-            if (qc.estado === 'pendiente' || qc.estado === 'parcial') {
+            if (qc.estado === 'pendiente') {
                 // Solo avisar si se ha creado/modificado en los últimos 30 segundos
                 const fechaRef = qc.fechaCreacion ? new Date(qc.fechaCreacion).getTime() : 0;
                 const diffSeg = (Date.now() - fechaRef) / 1000;
