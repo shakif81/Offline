@@ -101,164 +101,206 @@ async function comprobarYCrearQC(estacionId, operacionId) {
 async function cargarTQC() {
     const cont = document.getElementById('tqcListaEstaciones');
     const contador = document.getElementById('tqcContador');
-    if (!cont) return;
-
-    cont.innerHTML = '<div class="empty-state">⏳ Cargando...</div>';
-
-    const filtroEstado = document.getElementById('tqcFiltroEstado')?.value || 'pendiente';
-    const filtroOperacion = document.getElementById('tqcFiltroOperacion')?.value || 'todas';
-
-    const [qcs, operaciones] = await Promise.all([
-        cargarFirebase('estaciones_qc', true),
-        cargarFirebase('operaciones')
-    ]);
-
-    const selOp = document.getElementById('tqcFiltroOperacion');
-    if (selOp && selOp.options.length <= 1) {
-        const opsUnicas = [...new Set(
-            Object.values(qcs).map(q => q.operacionId).filter(Boolean)
-        )];
-
-        opsUnicas.forEach(opId => {
-            const op = operaciones[opId];
-            if (!op) return;
-            const opt = document.createElement('option');
-            opt.value = opId;
-            opt.textContent = `${op.modelo === 'MS3' ? '🔷' : '🔶'} Op. ${op.numero}`;
-            selOp.appendChild(opt);
-        });
-    }
-
-    let arr = Object.entries(qcs);
-
-    if (filtroEstado !== 'todas') {
-        arr = arr.filter(([id, q]) => q.estado === filtroEstado);
-    }
-
-    if (filtroOperacion !== 'todas') {
-        arr = arr.filter(([id, q]) => q.operacionId === filtroOperacion);
-    }
-
-    arr.sort((a, b) => 
-        new Date(a[1].fechaCreacion || 0) - new Date(b[1].fechaCreacion || 0)
-    );
-
-    actualizarBadgeTQCSidebar(arr.length);
-
-    if (contador) {
-        contador.textContent = `${arr.length} estación${arr.length !== 1 ? 'es' : ''}`;
-    }
-
-    if (!arr.length) {
-        cont.innerHTML = `
-            <div class="empty-state">
-                <div style="font-size:2.5rem;margin-bottom:12px;">✅</div>
-                <div style="font-weight:600;color:#1e293b;margin-bottom:4px;">Nada pendiente</div>
-                <div style="font-size:0.85rem;color:#94a3b8;">No hay estaciones esperando revisión con estos filtros.</div>
-            </div>
-        `;
+    if (!cont) {
+        console.warn('⚠️ No se encontró el contenedor de estaciones TQC');
         return;
     }
 
-    cont.innerHTML = arr.map(([clave, qc]) => {
-        const fecha = new Date(qc.fechaCreacion);
-        const ahora = new Date();
-        const diffMin = Math.floor((ahora - fecha) / 60000);
+    cont.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:0.85rem;">⏳ Cargando estaciones...</div>';
 
-        let fechaTexto = '';
-        if (diffMin < 60) fechaTexto = `hace ${diffMin} min`;
-        else if (diffMin < 1440) fechaTexto = `hace ${Math.floor(diffMin / 60)}h`;
-        else fechaTexto = `hace ${Math.floor(diffMin / 1440)}d`;
+    try {
+        const filtroEstado = document.getElementById('tqcFiltroEstado')?.value || 'pendiente';
+        const filtroOperacion = document.getElementById('tqcFiltroOperacion')?.value || 'todas';
 
-        let colorBorde = '#f59e0b';
-        let colorFondo = '#fffbeb';
-        let estadoTexto = '⏳ Pendiente';
-        let estadoColor = '#c2410c';
+        const [qcs, operaciones] = await Promise.all([
+            cargarFirebase('estaciones_qc', true),
+            cargarFirebase('operaciones')
+        ]);
 
-        if (qc.estado === 'aprobado') {
-            colorBorde = '#10b981';
-            colorFondo = '#ecfdf5';
-            estadoTexto = '✅ Aprobada';
-            estadoColor = '#047857';
-        } else if (qc.estado === 'parcial' || qc.estado === 'rechazado') {
-            colorBorde = '#ef4444';
-            colorFondo = '#fef2f2';
-            estadoTexto = '🔄 Con rechazos';
-            estadoColor = '#b91c1c';
+        // Rellenar filtro de operaciones
+        const selOp = document.getElementById('tqcFiltroOperacion');
+        if (selOp && selOp.options.length <= 1) {
+            const opsUnicas = [...new Set(Object.values(qcs).map(q => q.operacionId).filter(Boolean))];
+            opsUnicas.forEach(opId => {
+                const op = operaciones[opId];
+                if (!op) return;
+                const opt = document.createElement('option');
+                opt.value = opId;
+                opt.textContent = `${op.modelo === 'MS3' ? '🔷' : '🔶'} Op. ${op.numero}`;
+                selOp.appendChild(opt);
+            });
         }
 
-        const operarios = [...new Set(
-            (qc.montajesQC || []).map(m => m.operario).filter(Boolean)
-        )];
+        // Aplicar filtros
+        let arr = Object.entries(qcs);
+        if (filtroEstado !== 'todas') arr = arr.filter(([id, q]) => q.estado === filtroEstado);
+        if (filtroOperacion !== 'todas') arr = arr.filter(([id, q]) => q.operacionId === filtroOperacion);
+        
+        // Ordenar: más antiguos primero
+        arr.sort((a, b) => new Date(a[1].fechaCreacion || 0) - new Date(b[1].fechaCreacion || 0));
 
-        return `
-            <div onclick="abrirRevisionQC('${clave}')"
-                style="
-                    background:white;
-                    border:1px solid ${colorBorde}44;
-                    border-left:4px solid ${colorBorde};
-                    border-radius:12px;
-                    padding:14px 16px;
-                    cursor:pointer;
-                    transition:all 0.15s ease;
-                "
-                onmouseover="this.style.transform='translateX(3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'"
-                onmouseout="this.style.transform='translateX(0)';this.style.boxShadow=''">
+        // Actualizar contadores
+        if (typeof actualizarBadgeTQCSidebar === 'function') actualizarBadgeTQCSidebar(arr.length);
+        if (contador) contador.textContent = `${arr.length} estación${arr.length !== 1 ? 'es' : ''}`;
 
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-                    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-                        <span style="font-size:1.4rem;">🏭</span>
-                        <div style="min-width:0;">
-                            <div style="font-weight:700;font-size:0.95rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                ${qc.estacionNombre || 'Sin nombre'}
-                            </div>
-                            <div style="font-size:0.72rem;color:#64748b;margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                                <span style="background:#eef2ff;color:#4338ca;padding:1px 8px;border-radius:99px;font-weight:700;font-size:0.68rem;">
-                                    Op. ${qc.numeroOperacion || '—'}
-                                </span>
-                                <span style="color:#cbd5e1;">·</span>
-                                <span>${qc.modelo || 'MS3'}</span>
-                                <span style="color:#cbd5e1;">·</span>
-                                <span>📅 ${fechaTexto}</span>
+        if (!arr.length) {
+            cont.innerHTML = `
+                <div class="empty-state" style="background:white;border:1px dashed #cbd5e1;border-radius:12px;">
+                    <div style="font-size:2.5rem;margin-bottom:12px;">✅</div>
+                    <div style="font-weight:600;color:#1e293b;margin-bottom:4px;">Nada pendiente</div>
+                    <div style="font-size:0.85rem;color:#94a3b8;">No hay estaciones esperando revisión con estos filtros.</div>
+                </div>
+            `;
+            return;
+        }
+
+        // Renderizar tarjetas
+        cont.innerHTML = arr.map(([clave, qc]) => {
+            const fecha = new Date(qc.fechaCreacion || Date.now());
+            const diffMin = Math.floor((new Date() - fecha) / 60000);
+            let fechaTexto = diffMin < 60 ? `hace ${diffMin} min` : (diffMin < 1440 ? `hace ${Math.floor(diffMin / 60)}h` : `hace ${Math.floor(diffMin / 1440)}d`);
+
+            // Colores por estado
+            let colorBorde = '#f59e0b', bgBadge = '#fffbeb', textBadge = '#b45309', iconoBadge = '⏳', textoBadge = 'Pendiente';
+            if (qc.estado === 'aprobado') {
+                colorBorde = '#10b981'; bgBadge = '#ecfdf5'; textBadge = '#047857'; iconoBadge = '✅'; textoBadge = 'Aprobada';
+            } else if (qc.estado === 'parcial' || qc.estado === 'rechazado') {
+                colorBorde = '#ef4444'; bgBadge = '#fef2f2'; textBadge = '#b91c1c'; iconoBadge = '🔄'; textoBadge = 'Con rechazos';
+            }
+
+            const operarios = [...new Set((qc.montajesQC || []).map(m => m.operario).filter(Boolean))];
+
+            return `
+                <div onclick="abrirRevisionQC('${clave}')"
+                    style="background:white;border:1px solid #e5e7eb;border-left:4px solid ${colorBorde};border-radius:12px;padding:16px;cursor:pointer;transition:all 0.2s ease;box-shadow:0 2px 4px rgba(0,0,0,0.02);display:flex;flex-direction:column;"
+                    onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 16px rgba(0,0,0,0.06)';"
+                    onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.02)';">
+
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <div style="width:40px;height:40px;background:#f8fafc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;">🏭</div>
+                            <div>
+                                <div style="font-weight:800;font-size:1rem;color:#1e293b;">${qc.estacionNombre || 'Estación'}</div>
+                                <div style="font-size:0.75rem;color:#64748b;margin-top:2px;display:flex;align-items:center;gap:6px;">
+                                    <span style="font-family:'SF Mono',Monaco,monospace;font-weight:700;color:#4338ca;background:#eef2ff;padding:1px 6px;border-radius:4px;">Op. ${qc.numeroOperacion || '—'}</span>
+                                    <span style="color:#cbd5e1;">•</span>
+                                    <span>${qc.modelo || 'MS3'}</span>
+                                </div>
                             </div>
                         </div>
+                        <span style="background:${bgBadge};color:${textBadge};padding:4px 10px;border-radius:8px;font-size:0.7rem;font-weight:800;display:flex;align-items:center;gap:4px;border:1px solid ${textBadge}30;">
+                            ${iconoBadge} ${textoBadge}
+                        </span>
                     </div>
-                    <span style="
-                        background:${colorFondo};
-                        color:${estadoColor};
-                        padding:4px 12px;
-                        border-radius:99px;
-                        font-size:0.72rem;
-                        font-weight:700;
-                        white-space:nowrap;
-                        flex-shrink:0;
-                    ">${estadoTexto}</span>
-                </div>
 
-                <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.75rem;padding-top:8px;border-top:1px solid #f1f5f9;">
-                    <span style="color:#475569;font-weight:600;">
-                        📦 ${qc.totalMontajes || 0} montaje${qc.totalMontajes !== 1 ? 's' : ''}
-                    </span>
-                    ${qc.montajesAprobados > 0 ? `
-                        <span style="color:#047857;font-weight:700;">
-                            ✅ ${qc.montajesAprobados} aprobado${qc.montajesAprobados !== 1 ? 's' : ''}
-                        </span>
-                    ` : ''}
-                    ${qc.montajesRechazados > 0 ? `
-                        <span style="color:#b91c1c;font-weight:700;">
-                            ❌ ${qc.montajesRechazados} rechazado${qc.montajesRechazados !== 1 ? 's' : ''}
-                        </span>
-                    ` : ''}
-                    ${operarios.length > 0 ? `
-                        <span style="color:#64748b;font-weight:600;margin-left:auto;">
-                            👤 ${operarios.join(', ')}
-                        </span>
+                    <!-- INFO + FLECHA -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f1f5f9;padding-top:12px;margin-bottom:${(qc.estado === 'pendiente' || qc.estado === 'parcial') ? '12px' : '0'};">
+                        <div style="display:flex;align-items:center;gap:12px;font-size:0.75rem;color:#64748b;font-weight:600;">
+                            <span>📦 ${qc.totalMontajes || 0} montajes</span>
+                            ${operarios.length > 0 ? `<span>👤 ${operarios.join(', ')}</span>` : ''}
+                        </div>
+                        <div style="font-size:1.2rem;color:#cbd5e1;" title="Ver detalles">→</div>
+                    </div>
+
+                    <!-- 🆕 BOTONES DE ACCIÓN RÁPIDA (Solo si está pendiente o parcial) -->
+                    ${(qc.estado === 'pendiente' || qc.estado === 'parcial') ? `
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="event.stopPropagation(); responderTQCDesdTarjeta('${clave}', 'aprobado')" style="flex:1;padding:8px;border:none;border-radius:8px;background:#ecfdf5;color:#047857;font-weight:700;font-size:0.75rem;cursor:pointer;font-family:inherit;border:1px solid #a7f3d0;transition:all 0.2s;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='#ecfdf5'">✅ Aprobar</button>
+                            <button onclick="event.stopPropagation(); responderTQCDesdTarjeta('${clave}', 'rechazado')" style="flex:1;padding:8px;border:none;border-radius:8px;background:#fef2f2;color:#b91c1c;font-weight:700;font-size:0.75rem;cursor:pointer;font-family:inherit;border:1px solid #fecaca;transition:all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">❌ Rechazar</button>
+                        </div>
                     ` : ''}
                 </div>
-            </div>
-        `;
-    }).join('');
+            `;
+        }).join('');
+
+    } catch (e) {
+        console.error('❌ Error cargando TQC:', e);
+        cont.innerHTML = '<div style="color:#ef4444;font-size:0.85rem;padding:10px;">Error al cargar las estaciones.</div>';
+    }
 }
+
+async function responderTQCDesdTarjeta(clave, nuevoEstado) {
+    let motivo = '';
+    
+    // Si es rechazo, pedimos el motivo
+    if (nuevoEstado === 'rechazado') {
+        motivo = await preguntar(
+            'Motivo del rechazo (el operario lo verá):',
+            'Ej: Faltan aprietes en la base'
+        );
+        if (motivo === null) return; // Cancelado
+        if (!motivo.trim()) {
+            toast('⚠️ Escribe un motivo para rechazar', '#f59e0b');
+            return;
+        }
+    } else {
+        const ok = await confirmar('¿Aprobar toda la estación?');
+        if (!ok) return;
+    }
+
+    mostrarLoading('Guardando revisión...');
+    try {
+        const qcs = await cargarFirebase('estaciones_qc', true);
+        const qc = qcs[clave];
+        if (!qc) throw new Error('QC no encontrado');
+
+        // 1. Actualizar documento estación (estaciones_qc)
+        qc.estado = nuevoEstado === 'aprobado' ? 'aprobado' : 'parcial';
+        qc.revisor = window.APP.operario?.nombre || 'Admin';
+        qc.fechaUltimaRevision = new Date().toISOString();
+        qc.motivoRechazo = motivo;
+
+        // Actualizar montajes dentro del array
+        qc.montajesQC.forEach(m => {
+            m.estado = nuevoEstado;
+            m.motivoRechazo = motivo;
+            m.revisadoPor = qc.revisor;
+            m.fechaRevision = qc.fechaUltimaRevision;
+        });
+
+        await guardarFirebase('estaciones_qc', clave, qc);
+
+        // 2. Actualizar historial de montajes (historial_montajes)
+        const historial = await cargarFirebase('historial_montajes', true);
+        
+        for (const m of qc.montajesQC) {
+            const histId = m.historialId;
+            if (!histId || !historial[histId]) continue;
+
+            const h = historial[histId];
+            await guardarFirebase('historial_montajes', histId, {
+                qcEstado: nuevoEstado,
+                qcComentario: motivo,
+                qcRevisor: qc.revisor,
+                qcFecha: qc.fechaUltimaRevision,
+                qcReenvios: nuevoEstado === 'rechazado' ? (h.qcReenvios || 0) + 1 : (h.qcReenvios || 0),
+                notificacionVista: false
+            });
+        }
+
+        ocultarLoading();
+        toast(`✅ Estación ${nuevoEstado === 'aprobado' ? 'Aprobada' : 'Rechazada'}`, nuevoEstado === 'aprobado' ? '#10b981' : '#ef4444');
+        
+        // Recargar la lista de tarjetas
+        cargarTQC();
+
+    } catch (e) {
+        ocultarLoading();
+        console.error('❌ Error en responderTQCDesdTarjeta:', e);
+        toast('❌ Error al guardar la revisión', '#ef4444');
+    }
+}
+
+
+
+
+    
+
+
+
+
+
+
 
 function actualizarBadgeTQCSidebar(n) {
     const badge = document.getElementById('badgeTQCSidebar');
