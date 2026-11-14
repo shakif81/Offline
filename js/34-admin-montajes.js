@@ -167,16 +167,21 @@ renderHerramientasMontaje();
     setTimeout(() => document.getElementById('adminMontajeNombre').focus(), 300);
 }
 
+
+
+
 async function editarMontajeAdmin(id) {
     const montajes = await cargarFirebase('montajes');
     const mon = montajes[id];
     if (!mon) return;
 
+    // 🆕 Aseguramos que herramientas siempre sea un array
     window.APP.adminMontajeActual = {
         tornilleria: [],
         materiales: [],
         piezas: [],
-        herramientas: []
+        pasos: [],
+        herramientas: [] 
     };
 
     if (mon.tornilleria) {
@@ -189,9 +194,7 @@ async function editarMontajeAdmin(id) {
                 if (catId === ref || c.codigo === ref || c.nombre === ref) { cat = c; break; }
             }
             window.APP.adminMontajeActual.tornilleria.push({
-                ref,
-                nombre: cat?.nombre || ref,
-                cantidad: parseInt(cant) || 1
+                ref, nombre: cat?.nombre || ref, cantidad: parseInt(cant) || 1
             });
         });
     }
@@ -205,20 +208,9 @@ async function editarMontajeAdmin(id) {
             const cant = parseInt(partes[1]) || 1;
             const nombreEmb = partes[2] ? decodeURIComponent(partes[2]) : '';
             const codigoEmb = partes[3] ? decodeURIComponent(partes[3]) : '';
-
-            let cat = catMat[ref];
-            if (!cat) {
-                cat = Object.values(catMat).find(m =>
-                    m.codigo === ref || m.nombre === ref
-                );
-            }
-
+            let cat = catMat[ref] || Object.values(catMat).find(m => m.codigo === ref || m.nombre === ref);
             window.APP.adminMontajeActual.materiales.push({
-                ref,
-                nombre: cat?.nombre || nombreEmb || ref,
-                codigo: cat?.codigo || codigoEmb || '',
-                requiereEscaneo: cat?.requiereEscaneo === true,
-                cantidad: cant
+                ref, nombre: cat?.nombre || nombreEmb || ref, codigo: cat?.codigo || codigoEmb || '', requiereEscaneo: cat?.requiereEscaneo === true, cantidad: cant
             });
         });
     }
@@ -228,55 +220,51 @@ async function editarMontajeAdmin(id) {
         mon.piezasKanban.split(',').forEach(item => {
             const [codigo, cant] = item.trim().split('=');
             if (!codigo) return;
-            let cat = Object.values(catPiezas).find(p => p.codigo === codigo);
-            if (!cat) cat = catPiezas[codigo];
+            let cat = Object.values(catPiezas).find(p => p.codigo === codigo) || catPiezas[codigo];
             window.APP.adminMontajeActual.piezas.push({
-                codigo,
-                nombre: cat?.nombre || codigo,
-                cantidad: parseInt(cant) || 1
+                codigo, nombre: cat?.nombre || codigo, cantidad: parseInt(cant) || 1
             });
         });
     }
 
-// 🆕 Añade este bloque para leer las herramientas guardadas
-if (mon.herramientas) {
-    const catHerr = await cargarFirebase('herramientas');
-    mon.herramientas.split('||').forEach(item => {
-        const idHerr = item.trim();
-        if (!idHerr) return;
-        const h = catHerr[idHerr];
-        window.APP.adminMontajeActual.herramientas.push({
-            id: idHerr,
-            nombre: h ? h.nombre : idHerr,
-            codigo: h ? h.codigo : '',
-            numero: h ? h.numero : ''
+    // 🆕 Cargar Herramientas (si existen)
+    if (mon.herramientas) {
+        const catHerr = await cargarFirebase('herramientas');
+        mon.herramientas.split('||').forEach(item => {
+            const idHerr = item.trim();
+            if (!idHerr) return;
+            const h = catHerr[idHerr];
+            window.APP.adminMontajeActual.herramientas.push({
+                id: idHerr, nombre: h ? h.nombre : idHerr
+            });
         });
-    });
-}
+    }
 
-
-if (mon.pasos && Array.isArray(mon.pasos)) {
-    window.APP.adminMontajeActual.pasos = mon.pasos.map(p => ({
-        id: p.id || 'paso_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        texto: p.texto || ''
-    }));
-}
+    if (mon.pasos && Array.isArray(mon.pasos)) {
+        window.APP.adminMontajeActual.pasos = mon.pasos.map(p => ({
+            id: p.id || 'paso_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+            texto: p.texto || ''
+        }));
+    }
 
     document.getElementById('adminMontajesForm').style.display = 'block';
     document.getElementById('adminMontajeFormTitulo').textContent = 'Editar Montaje';
-
     document.getElementById('adminMontajeId').value = id;
     document.getElementById('adminMontajeNombre').value = mon.nombre || '';
     document.getElementById('adminMontajeOrden').value = mon.orden || '';
     document.getElementById('adminMontajeTiempo').value = mon.tiempoHoras || '';
     document.getElementById('adminMontajeIcono').value = mon.icono || '';
     document.getElementById('adminMontajeDescripcion').value = mon.descripcion || '';
+    
     await prepararSelectDependenciaMontaje(id);
     document.getElementById('adminMontajeDependeDe').value = typeof resolverDependeDe === 'function' ? (resolverDependeDe(mon, montajes) || '') : '';
+    
     const selOperarioEditar = document.getElementById('adminMontajeOperario');
     if (selOperarioEditar) selOperarioEditar.value = mon.operarioAsignado || '';
+    
     const chkTQCEditar = document.getElementById('adminMontajeEsTQC');
     if (chkTQCEditar) chkTQCEditar.checked = !!mon.esTQC;
+    
     document.getElementById('adminMontajePares').value = mon.paresRequeridos || '';
     document.getElementById('adminMontajeInstrucciones').value = mon.instrucciones || '';
     document.getElementById('adminMontajeVideo').value = mon.videoInstrucciones || '';
@@ -292,21 +280,26 @@ if (mon.pasos && Array.isArray(mon.pasos)) {
     if (selEst) selEst.value = mon.puntoId || '';
 
     renderTornilleriaMontaje();
-renderMaterialesMontaje();
-renderPiezasMontaje();
-renderPasosMontaje();
-    // Y abajo, junto a los otros renders:
-renderHerramientasMontaje();
-    
+    renderMaterialesMontaje();
+    renderPiezasMontaje();
+    renderPasosMontaje();
+    renderHerramientasMontaje(); // 🆕 Renderizar herramientas
 
     document.getElementById('adminMontajesForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+
+
+
+    
 function cerrarFormMontaje() {
     document.getElementById('adminMontajesForm').style.display = 'none';
     document.getElementById('adminMontajeId').value = '';
     window.APP.adminMontajeActual = { tornilleria: [], materiales: [], piezas: [], pasos: [] };
 }
+
+
+
 
 async function guardarMontajeAdmin() {
     const id = document.getElementById('adminMontajeId').value || 'mont_' + Date.now();
@@ -315,11 +308,13 @@ async function guardarMontajeAdmin() {
     const tiempo = parseFloat(document.getElementById('adminMontajeTiempo').value) || 0;
     const icono = document.getElementById('adminMontajeIcono').value.trim();
     const descripcion = document.getElementById('adminMontajeDescripcion').value.trim();
+    
     const campoDepende = document.getElementById('adminMontajeDependeDe');
-    const dependeEsLista = campoDepende.tagName === 'SELECT';
+    const dependeEsLista = campoDepende?.tagName === 'SELECT';
     const dependeDeId = dependeEsLista ? campoDepende.value : '';
+    
     const montajesTodos = await cargarFirebase('montajes');
-    const dependeDe = dependeEsLista ? (montajesTodos[dependeDeId]?.nombre || '') : campoDepende.value.trim();
+    const dependeDe = dependeEsLista ? (montajesTodos[dependeDeId]?.nombre || '') : (campoDepende?.value || '').trim();
 
     let cursor = dependeDeId;
     for (let saltos = 0; cursor && saltos < 50; saltos++) {
@@ -329,6 +324,7 @@ async function guardarMontajeAdmin() {
         }
         cursor = typeof resolverDependeDe === 'function' ? resolverDependeDe(montajesTodos[cursor] || {}, montajesTodos) : null;
     }
+
     const estacionId = document.getElementById('adminMontajeEstacion').value;
     const pares = document.getElementById('adminMontajePares').value.trim();
     const instrucciones = document.getElementById('adminMontajeInstrucciones').value;
@@ -347,16 +343,16 @@ async function guardarMontajeAdmin() {
     if (!est) { alertar('Estación no encontrada', { tipo: 'danger' }); return; }
     const modelo = est.modelo || 'MS3';
 
-    const rec = window.APP.adminMontajeActual;
-// Convertir herramientas a string (solo IDs, separados por ||)
-const herramientasStr = rec.herramientas.map(h => h.id).join('||');
-    const tornilleriaStr = rec.tornilleria.map(t => `${t.ref}=${t.cantidad}`).join('||');
+    const rec = window.APP.adminMontajeActual || {};
 
-    const materialesStr = rec.materiales.map(m =>
+    // 🆕 BLINDAJE: Aseguramos que todos los arrays existen antes de hacer .map
+    const tornilleriaStr = (rec.tornilleria || []).map(t => `${t.ref}=${t.cantidad}`).join('||');
+    const materialesStr = (rec.materiales || []).map(m =>
         `${m.ref}=${m.cantidad}=${encodeURIComponent(m.nombre)}=${encodeURIComponent(m.codigo)}`
     ).join('||');
-
-    const piezasStr = rec.piezas.map(p => `${p.codigo}=${p.cantidad}`).join(',');
+    const piezasStr = (rec.piezas || []).map(p => `${p.codigo}=${p.cantidad}`).join(',');
+    const herramientasStr = (rec.herramientas || []).map(h => h.id).join('||'); // 🆕 Protegido
+    const pasosArr = rec.pasos || [];
 
     const pdfs = usaSubida
         ? adjuntosMontaje().pdfs.map(p => ({ url: p.url, nombre: p.nombre || 'Documento.pdf', tamaño: p.tamaño || null }))
@@ -365,51 +361,62 @@ const herramientasStr = rec.herramientas.map(h => h.id).join('||');
         ? adjuntosMontaje().fotos.slice()
         : (fotosTexto ? fotosTexto.split('\n').map(l => l.trim()).filter(l => l) : []);
 
-const pasos = (rec.pasos || []).map(p => ({
-    id: p.id,
-    texto: p.texto
-}));
+    const pasos = pasosArr.map(p => ({ id: p.id, texto: p.texto }));
 
-const data = {
-    nombre: nombre,
-    orden: String(orden),
-    tiempoHoras: tiempo,
-    icono: icono,
-    descripcion: descripcion,
-    dependeDe: dependeDe,
-    dependeDeId: dependeDeId,
-    puntoId: estacionId,
-    modelo: modelo,
-    paresRequeridos: pares,
-    herramientas: herramientasStr,
-    tornilleria: tornilleriaStr,
-    materialesNecesarios: materialesStr,
-    piezasKanban: piezasStr,
-    instrucciones: instrucciones,
-    videoInstrucciones: video,
-    instruccionesPdfs: pdfs,
-    instruccionesFotos: fotos,
-    pasos: pasos
-};
+    const data = {
+        nombre: nombre,
+        orden: String(orden),
+        tiempoHoras: tiempo,
+        icono: icono,
+        descripcion: descripcion,
+        dependeDe: dependeDe,
+        dependeDeId: dependeDeId,
+        puntoId: estacionId,
+        modelo: modelo,
+        paresRequeridos: pares,
+        tornilleria: tornilleriaStr,
+        materialesNecesarios: materialesStr,
+        piezasKanban: piezasStr,
+        herramientas: herramientasStr, // 🆕 Guardamos las herramientas
+        instrucciones: instrucciones,
+        videoInstrucciones: video,
+        instruccionesPdfs: pdfs,
+        instruccionesFotos: fotos,
+        pasos: pasos
+    };
 
-const selOperarioGuardar = document.getElementById('adminMontajeOperario');
-if (selOperarioGuardar) data.operarioAsignado = selOperarioGuardar.value;
+    const selOperarioGuardar = document.getElementById('adminMontajeOperario');
+    if (selOperarioGuardar) data.operarioAsignado = selOperarioGuardar.value;
 
-const chkTQCGuardar = document.getElementById('adminMontajeEsTQC');
-if (chkTQCGuardar) data.esTQC = chkTQCGuardar.checked;
+    const chkTQCGuardar = document.getElementById('adminMontajeEsTQC');
+    if (chkTQCGuardar) data.esTQC = chkTQCGuardar.checked;
 
     mostrarLoading('Guardando montaje...');
-    const ok = await guardarFirebase('montajes', id, data);
-    ocultarLoading();
-
-    if (ok) {
-        toast('✅ Montaje guardado', '#10b981');
-        cerrarFormMontaje();
-        cargarAdminMontajes();
-    } else {
-        toast('❌ Error al guardar', '#ef4444');
+    try {
+        const ok = await guardarFirebase('montajes', id, data);
+        ocultarLoading();
+        if (ok) {
+            toast('✅ Montaje guardado', '#10b981');
+            cerrarFormMontaje();
+            cargarAdminMontajes();
+        } else {
+            toast('❌ Error al guardar', '#ef4444');
+        }
+    } catch (e) {
+        ocultarLoading();
+        console.error(e);
+        toast('❌ Error inesperado al guardar', '#ef4444');
     }
 }
+
+
+
+
+
+
+
+
+
 
 async function eliminarMontajeAdmin() {
     const id = document.getElementById('adminMontajeId').value;
