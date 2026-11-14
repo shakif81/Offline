@@ -416,7 +416,8 @@ async function corregirEstacionTQC(operacionId, estacionId) {
             estado: 'pendiente',
             motivoRechazo: '',
             revisor: '',
-            fechaUltimaRevision: null
+            fechaUltimaRevision: null,
+            fechaCreacion: new Date().toISOString() // 🆕 ACTUALIZAMOS LA FECHA PARA QUE SALTE LA ALERTA
         });
 
         // 2. Limpiar el estado en el historial de los montajes
@@ -451,7 +452,6 @@ async function corregirEstacionTQC(operacionId, estacionId) {
         toast('❌ Error al actualizar el estado', '#ef4444');
     }
 }
-
 window.corregirEstacionTQC = corregirEstacionTQC;
 
 function renderTarjetaMontaje(mid, m, color, completadosIds, historial, operacionId) {
